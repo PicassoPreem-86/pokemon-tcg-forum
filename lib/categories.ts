@@ -1,4 +1,10 @@
 // Elite Fourum Style Categories - Pokemon TCG Theme
+export interface Subcategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export interface Category {
   id: string;
   slug: string;
@@ -8,6 +14,7 @@ export interface Category {
   icon: string;
   threadCount: number;
   postCount: number;
+  subcategories?: Subcategory[];
 }
 
 export const CATEGORIES: Category[] = [
@@ -20,6 +27,11 @@ export const CATEGORIES: Category[] = [
     icon: 'MessageSquare',
     threadCount: 4523,
     postCount: 89234,
+    subcategories: [
+      { id: 'general-intro', name: 'Introductions', description: 'New member introductions' },
+      { id: 'general-offtopic', name: 'Off-Topic', description: 'Non-Pokemon discussions' },
+      { id: 'general-feedback', name: 'Site Feedback', description: 'Suggestions and feedback' },
+    ],
   },
   {
     id: 'collecting',
@@ -40,6 +52,11 @@ export const CATEGORIES: Category[] = [
     icon: 'TrendingUp',
     threadCount: 2156,
     postCount: 34567,
+    subcategories: [
+      { id: 'market-prices', name: 'Price Checks', description: 'Get valuations on your cards' },
+      { id: 'market-trends', name: 'Market Trends', description: 'Discussion of market movements' },
+      { id: 'market-invest', name: 'Investment', description: 'Long-term card investments' },
+    ],
   },
   {
     id: 'grading',

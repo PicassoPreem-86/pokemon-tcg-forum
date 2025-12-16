@@ -302,11 +302,28 @@ export const DEMO_ACCOUNT = {
   password: 'demo123',
 };
 
+// Admin account for testing admin features
+export const ADMIN_ACCOUNT = {
+  email: 'admin@pokemontcg.com',
+  password: 'admin123',
+};
+
+// Check if user is admin
+export function isUserAdmin(user: AuthUser | null): boolean {
+  return user?.role === 'admin';
+}
+
+// Check if user is moderator or admin
+export function isUserModerator(user: AuthUser | null): boolean {
+  return user?.role === 'admin' || user?.role === 'moderator';
+}
+
 // Initialize demo account on first load
 export function initializeDemoAccount() {
   if (typeof window === 'undefined') return;
 
   const users = getStoredUsers();
+  let needsSave = false;
 
   if (!users.has(DEMO_ACCOUNT.email)) {
     const demoUser: AuthUser & { password: string } = {
@@ -330,6 +347,37 @@ export function initializeDemoAccount() {
     };
 
     users.set(DEMO_ACCOUNT.email, demoUser);
+    needsSave = true;
+  }
+
+  // Initialize admin account
+  if (!users.has(ADMIN_ACCOUNT.email)) {
+    const adminUser: AuthUser & { password: string } = {
+      id: 'user-admin',
+      username: 'PikachuAdmin',
+      email: ADMIN_ACCOUNT.email,
+      password: ADMIN_ACCOUNT.password,
+      displayName: 'Pikachu Admin',
+      avatar: '/images/avatars/admin.png',
+      role: 'admin' as UserRole,
+      joinDate: '2023-01-01T00:00:00Z',
+      postCount: 1247,
+      reputation: 9999,
+      location: 'Pokemon League HQ',
+      bio: 'Forum Administrator - Here to help!',
+      isOnline: true,
+      badges: [
+        { id: 'badge-admin', name: 'Administrator', icon: 'Shield', color: '#EF4444' },
+        { id: 'badge-founder', name: 'Founder', icon: 'Crown', color: '#F59E0B' },
+        { id: 'badge-verified', name: 'Verified', icon: 'CheckCircle', color: '#10B981' },
+      ],
+    };
+
+    users.set(ADMIN_ACCOUNT.email, adminUser);
+    needsSave = true;
+  }
+
+  if (needsSave) {
     saveUsers(users);
   }
 }
