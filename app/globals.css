@@ -1727,6 +1727,52 @@ a:hover {
   text-decoration: none;
 }
 
+/* Mobile menu user section (when logged in) */
+.mobile-menu-user {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-menu-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-bg-tertiary);
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.mobile-menu-user-info:hover {
+  background: var(--color-bg-secondary);
+  text-decoration: none;
+}
+
+.mobile-menu-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mobile-menu-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-menu-user-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
+.mobile-menu-user-username {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
 /* Hide menu on desktop */
 @media (min-width: 1024px) {
   .mobile-menu-backdrop,

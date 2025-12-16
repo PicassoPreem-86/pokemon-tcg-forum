@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
 import MobileMenu from '@/components/layout/MobileMenu';
+import UserMenu from '@/components/user/UserMenu';
+import { initializeDemoAccount } from '@/lib/auth-store';
 
 export default function ThreadBySlugLayout({
   children,
@@ -27,6 +29,10 @@ export default function ThreadBySlugLayout({
 
   const handleMenuClose = useCallback(() => {
     setIsMobileMenuOpen(false);
+  }, []);
+
+  useEffect(() => {
+    initializeDemoAccount();
   }, []);
 
   return (
@@ -105,8 +111,7 @@ export default function ThreadBySlugLayout({
           </div>
 
           <div className="header-actions">
-            <Link href="/login" className="btn btn-secondary">Log In</Link>
-            <Link href="/register" className="btn btn-primary">Sign Up</Link>
+            <UserMenu />
           </div>
         </header>
 
