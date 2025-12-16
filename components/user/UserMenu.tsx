@@ -16,7 +16,7 @@ import {
   Bookmark,
   Bell
 } from 'lucide-react';
-import { useAuthStore } from '@/lib/auth-store';
+import { useAuthStore, useAuthStateAfterHydration } from '@/lib/auth-store';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 
 // Role badge configuration
@@ -29,7 +29,8 @@ const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: 
 };
 
 export default function UserMenu() {
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { logout } = useAuthStore();
+  const { user, isAuthenticated, isHydrated } = useAuthStateAfterHydration();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +62,15 @@ export default function UserMenu() {
     setIsOpen(false);
     logout();
   };
+
+  // Show skeleton during SSR/hydration to prevent mismatch
+  if (!isHydrated) {
+    return (
+      <div className="user-menu-auth">
+        <div className="user-menu-skeleton" />
+      </div>
+    );
+  }
 
   // Not authenticated - show login/register buttons
   if (!isAuthenticated || !user) {

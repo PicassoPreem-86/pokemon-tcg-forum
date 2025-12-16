@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useState, useEffect } from 'react';
 import { User, UserRole, UserBadge } from './types';
 
 // Auth user extends base User with email
@@ -236,6 +237,78 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+// Hook to check if store has hydrated from localStorage
+// Uses useSyncExternalStore for reliable SSR/hydration handling
+export function useAuthHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    // On client side, immediately mark as hydrated after mount
+    // The persist middleware will have already rehydrated by this point
+    setHydrated(true);
+  }, []);
+
+  return hydrated;
+}
+
+// Helper to read auth state from localStorage
+function getAuthFromLocalStorage(): { user: AuthUser | null; isAuthenticated: boolean } {
+  if (typeof window === 'undefined') {
+    return { user: null, isAuthenticated: false };
+  }
+
+  try {
+    const storedAuth = localStorage.getItem('pokemon-tcg-auth');
+    if (storedAuth) {
+      const parsed = JSON.parse(storedAuth);
+      if (parsed.state) {
+        return {
+          user: parsed.state.user || null,
+          isAuthenticated: parsed.state.isAuthenticated || false,
+        };
+      }
+    }
+  } catch (e) {
+    // Ignore parse errors
+  }
+
+  return { user: null, isAuthenticated: false };
+}
+
+// Alternative: Direct subscription-based hook for auth state
+// This ensures we get the latest state after hydration
+export function useAuthStateAfterHydration() {
+  // Start with false for SSR, will be set to true after mount
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Force re-render counter
+  const [, forceUpdate] = useState(0);
+
+  // Read current state - will be empty on SSR, populated on client
+  const currentState = isHydrated ? getAuthFromLocalStorage() : { user: null, isAuthenticated: false };
+
+  useEffect(() => {
+    // Mark as hydrated
+    setIsHydrated(true);
+
+    // Force a re-render to pick up localStorage values
+    forceUpdate((n) => n + 1);
+
+    // Subscribe to store changes for future updates
+    const unsubscribe = useAuthStore.subscribe(() => {
+      forceUpdate((n) => n + 1);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  return {
+    user: currentState.user,
+    isAuthenticated: currentState.isAuthenticated,
+    isHydrated,
+  };
+}
 
 // Demo account for easy testing
 export const DEMO_ACCOUNT = {

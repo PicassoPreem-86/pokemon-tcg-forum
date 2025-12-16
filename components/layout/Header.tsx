@@ -15,7 +15,7 @@ import {
 import { NAV_ITEMS, SITE_CONFIG } from '@/lib/config';
 import { cn } from '@/lib/utils';
 import UserMenu from '@/components/user/UserMenu';
-import { useAuthStore, initializeDemoAccount } from '@/lib/auth-store';
+import { useAuthStateAfterHydration, initializeDemoAccount } from '@/lib/auth-store';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -25,7 +25,7 @@ interface HeaderProps {
 export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isHydrated } = useAuthStateAfterHydration();
 
   // Initialize demo account on mount
   useEffect(() => {
@@ -131,8 +131,8 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                 )}
               </div>
 
-              {/* Notifications - Only show when authenticated */}
-              {isAuthenticated && (
+              {/* Notifications - Only show when authenticated (after hydration) */}
+              {isHydrated && isAuthenticated && (
                 <button
                   className="relative p-2 rounded-lg hover:bg-dark-800 transition-colors"
                   aria-label="Notifications"

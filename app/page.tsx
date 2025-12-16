@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -27,6 +27,8 @@ import {
 import { CATEGORIES, LATEST_THREADS, FORUM_STATS, ONLINE_USERS, formatNumber, Thread as HomeThread } from '@/lib/categories';
 import { useThreadStore, UserThread } from '@/lib/thread-store';
 import MobileMenu from '@/components/layout/MobileMenu';
+import UserMenu from '@/components/user/UserMenu';
+import { initializeDemoAccount } from '@/lib/auth-store';
 
 // Helper to format time ago
 function formatTimeAgo(dateString: string): string {
@@ -84,6 +86,11 @@ export default function HomePage() {
 
   const handleMenuClose = useCallback(() => {
     setIsMobileMenuOpen(false);
+  }, []);
+
+  // Initialize demo account on mount
+  useEffect(() => {
+    initializeDemoAccount();
   }, []);
 
   // Combine user threads with mock threads for display
@@ -179,8 +186,7 @@ export default function HomePage() {
           </div>
 
           <div className="header-actions">
-            <Link href="/login" className="btn btn-secondary">Log In</Link>
-            <Link href="/register" className="btn btn-primary">Sign Up</Link>
+            <UserMenu />
           </div>
         </header>
 
