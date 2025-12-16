@@ -238,20 +238,6 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Hook to check if store has hydrated from localStorage
-// Uses useSyncExternalStore for reliable SSR/hydration handling
-export function useAuthHydrated(): boolean {
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    // On client side, immediately mark as hydrated after mount
-    // The persist middleware will have already rehydrated by this point
-    setHydrated(true);
-  }, []);
-
-  return hydrated;
-}
-
 // Helper to read auth state from localStorage
 function getAuthFromLocalStorage(): { user: AuthUser | null; isAuthenticated: boolean } {
   if (typeof window === 'undefined') {
