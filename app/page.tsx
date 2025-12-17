@@ -366,7 +366,7 @@ export default function HomePage() {
                   {user}{i < ONLINE_USERS.length - 1 ? ', ' : ''}
                 </Link>
               ))}
-              <span className="text-[#666]">and {FORUM_STATS.onlineNow - ONLINE_USERS.length} more...</span>
+              <span className="text-[#9CA3AF]">and {FORUM_STATS.onlineNow - ONLINE_USERS.length} more...</span>
             </div>
           </div>
 

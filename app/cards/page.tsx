@@ -240,7 +240,7 @@ export default function CardsPage() {
 
           {totalPages > 5 && (
             <>
-              <span style={{ padding: '10px', color: '#666' }}>...</span>
+              <span style={{ padding: '10px', color: '#9CA3AF' }}>...</span>
               <button
                 className={currentPage === totalPages ? 'active' : ''}
                 onClick={() => setCurrentPage(totalPages)}
