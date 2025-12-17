@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -15,7 +16,6 @@ import {
   Clock,
   Flame,
   Grid3X3,
-  Search,
   Menu,
   Users,
   MessageCircle,
@@ -26,9 +26,16 @@ import {
 } from 'lucide-react';
 import { CATEGORIES, LATEST_THREADS, FORUM_STATS, ONLINE_USERS, formatNumber, Thread as HomeThread } from '@/lib/categories';
 import { useThreadStore, UserThread } from '@/lib/thread-store';
-import MobileMenu from '@/components/layout/MobileMenu';
-import UserMenu from '@/components/user/UserMenu';
 import { initializeDemoAccount } from '@/lib/auth-store';
+
+// Dynamic imports for components not needed on initial render
+const MobileMenu = dynamic(() => import('@/components/layout/MobileMenu'), {
+  ssr: false,
+});
+const UserMenu = dynamic(() => import('@/components/user/UserMenu'), {
+  ssr: false,
+  loading: () => <div className="user-menu-skeleton" />,
+});
 
 // Helper to format time ago
 function formatTimeAgo(dateString: string): string {

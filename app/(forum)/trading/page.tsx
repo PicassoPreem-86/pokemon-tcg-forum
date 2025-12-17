@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
   ArrowLeftRight,
@@ -13,8 +14,12 @@ import {
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import MobileMenu from '@/components/layout/MobileMenu';
 import Sidebar from '@/components/layout/Sidebar';
+
+// Dynamic import for MobileMenu
+const MobileMenu = dynamic(() => import('@/components/layout/MobileMenu'), {
+  ssr: false,
+});
 import ThreadCard from '@/components/forum/ThreadCard';
 import { getCategoryBySlug } from '@/lib/categories';
 import { getThreadsByCategory, getPinnedThreads } from '@/lib/mock-data/threads';

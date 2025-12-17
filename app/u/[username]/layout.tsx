@@ -1,5 +1,7 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -12,9 +14,16 @@ import {
   Menu,
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
-import MobileMenu from '@/components/layout/MobileMenu';
-import UserMenu from '@/components/user/UserMenu';
 import { initializeDemoAccount } from '@/lib/auth-store';
+
+// Dynamic imports for components not needed on initial render
+const MobileMenu = dynamic(() => import('@/components/layout/MobileMenu'), {
+  ssr: false,
+});
+const UserMenu = dynamic(() => import('@/components/user/UserMenu'), {
+  ssr: false,
+  loading: () => <div className="user-menu-skeleton" />,
+});
 
 export default function UserProfileLayout({
   children,
