@@ -1,0 +1,5 @@
+# Modern browsers only - no legacy polyfills needed
+chrome >= 87
+firefox >= 78
+safari >= 14
+edge >= 88
