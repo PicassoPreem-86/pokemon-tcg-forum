@@ -132,6 +132,7 @@ export default function HomePage() {
               width={40}
               height={40}
               className="sidebar-logo-img"
+              priority
             />
             <span className="sidebar-logo-text">PIKACHU TCG</span>
           </Link>
@@ -207,6 +208,7 @@ export default function HomePage() {
               width={120}
               height={120}
               className="hero-mascot"
+              priority
             />
             <div className="hero-content">
               <h1 className="hero-title">

@@ -59,6 +59,7 @@ export default function SearchLayout({
               width={40}
               height={40}
               className="sidebar-logo-img"
+              priority
             />
             <span className="sidebar-logo-text">PIKACHU TCG</span>
           </Link>

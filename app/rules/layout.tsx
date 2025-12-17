@@ -57,6 +57,7 @@ export default function CategoriesLayout({
               width={40}
               height={40}
               className="sidebar-logo-img"
+              priority
             />
             <span className="sidebar-logo-text">PIKACHU TCG</span>
           </Link>
