@@ -1,4 +1,4 @@
-'use client';
+
 
 import Link from 'next/link';
 import { FileText, BookOpen, Sparkles, Shield, TrendingUp, Award } from 'lucide-react';

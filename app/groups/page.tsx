@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { Users, Lock, Globe, Crown, MessageSquare } from 'lucide-react';
 

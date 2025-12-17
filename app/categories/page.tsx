@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { Grid3X3, MessageSquare, Star, TrendingUp, Award, BookOpen, Newspaper, ArrowLeftRight } from 'lucide-react';
 import { CATEGORIES, formatNumber } from '@/lib/categories';
