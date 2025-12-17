@@ -260,6 +260,7 @@ export default function HomePage() {
           </div>
 
           {/* Categories Grid - 2 Column Elite Fourum Style */}
+          <h2 className="sr-only">Forum Categories</h2>
           <div className="categories-grid">
             {CATEGORIES.map((category) => (
               <Link
