@@ -57,7 +57,7 @@ const consequences = [
   { offense: 'First Offense', action: 'Warning', color: 'text-yellow-400' },
   { offense: 'Second Offense', action: '24-hour mute', color: 'text-orange-400' },
   { offense: 'Third Offense', action: '7-day ban', color: 'text-red-400' },
-  { offense: 'Severe Violations', action: 'Permanent ban', color: 'text-red-600' },
+  { offense: 'Severe Violations', action: 'Permanent ban', color: 'text-rose-500' },
 ];
 
 export default function RulesPage() {
