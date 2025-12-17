@@ -121,7 +121,7 @@ export default function HomePage() {
           <Link href="/" className="sidebar-logo">
             <Image
               src="/images/pikachu-logo.png"
-              alt="Pikachu TCG"
+              alt=""
               width={40}
               height={40}
               className="sidebar-logo-img"
