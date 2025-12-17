@@ -16,6 +16,8 @@ import {
   LogOut,
   ChevronLeft,
   Bell,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useAuthStateAfterHydration, useAuthStore, isUserAdmin, initializeDemoAccount } from '@/lib/auth-store';
 
@@ -39,10 +41,39 @@ export default function AdminLayout({
   const { logout } = useAuthStore();
   const { user, isAuthenticated, isHydrated } = useAuthStateAfterHydration();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     initializeDemoAccount();
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Close mobile menu on window resize to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   // Redirect non-admin users
   useEffect(() => {
@@ -68,8 +99,16 @@ export default function AdminLayout({
 
   return (
     <div className="admin-wrapper">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="admin-mobile-overlay"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Admin Sidebar */}
-      <aside className={`admin-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`admin-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="admin-sidebar-header">
           <Link href="/admin" className="admin-logo">
             <Shield className="w-8 h-8 text-yellow-500" />
@@ -77,10 +116,17 @@ export default function AdminLayout({
           </Link>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="admin-collapse-btn"
+            className="admin-collapse-btn desktop-only"
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <ChevronLeft className={`w-5 h-5 transition-transform ${isCollapsed ? 'rotate-180' : ''}`} />
+          </button>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="admin-close-btn mobile-only"
+            aria-label="Close menu"
+          >
+            <X className="w-6 h-6" />
           </button>
         </div>
 
@@ -94,6 +140,7 @@ export default function AdminLayout({
                 href={item.href}
                 className={`admin-nav-item ${isActive ? 'active' : ''}`}
                 title={isCollapsed ? item.name : undefined}
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 <item.icon className="w-5 h-5" />
                 {!isCollapsed && <span>{item.name}</span>}
@@ -103,7 +150,12 @@ export default function AdminLayout({
         </nav>
 
         <div className="admin-sidebar-footer">
-          <Link href="/" className="admin-nav-item" title={isCollapsed ? 'Back to Forum' : undefined}>
+          <Link
+            href="/"
+            className="admin-nav-item"
+            title={isCollapsed ? 'Back to Forum' : undefined}
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
             <ChevronLeft className="w-5 h-5" />
             {!isCollapsed && <span>Back to Forum</span>}
           </Link>
@@ -119,6 +171,13 @@ export default function AdminLayout({
         {/* Top Header */}
         <header className="admin-header">
           <div className="admin-header-left">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="admin-mobile-menu-btn mobile-only"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
             <h1 className="admin-page-title">
               {adminNavItems.find(item =>
                 pathname === item.href ||

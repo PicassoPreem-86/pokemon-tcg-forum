@@ -7295,6 +7295,142 @@ a:hover {
   overflow-y: auto;
 }
 
+/* Mobile/Desktop Helper Classes */
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  display: flex !important;
+}
+
+/* Mobile Menu Button */
+.admin-mobile-menu-btn {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.admin-mobile-menu-btn:hover {
+  background: var(--color-bg-tertiary);
+}
+
+/* Mobile Close Button */
+.admin-close-btn {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.admin-close-btn:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* Mobile Overlay */
+.admin-mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+}
+
+/* Admin Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .mobile-only {
+    display: flex !important;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .admin-mobile-overlay {
+    display: block;
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    width: 280px;
+  }
+
+  .admin-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .admin-sidebar.collapsed {
+    width: 280px;
+  }
+
+  .admin-sidebar.collapsed .admin-nav-item span,
+  .admin-sidebar.collapsed .admin-logo span {
+    display: inline;
+  }
+
+  .admin-main {
+    width: 100%;
+  }
+
+  .admin-header {
+    padding: 12px 16px;
+  }
+
+  .admin-page-title {
+    font-size: 18px;
+  }
+
+  .admin-user-details {
+    display: none;
+  }
+
+  .admin-content {
+    padding: 16px;
+  }
+
+  .admin-header-right {
+    gap: 8px;
+  }
+}
+
+/* Tablet Responsive */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .admin-sidebar {
+    width: 72px;
+  }
+
+  .admin-sidebar .admin-nav-item span,
+  .admin-sidebar .admin-logo span {
+    display: none;
+  }
+
+  .admin-sidebar-header {
+    justify-content: center;
+  }
+
+  .admin-collapse-btn {
+    display: none;
+  }
+}
+
 /* Admin Dashboard */
 .admin-dashboard {
   display: flex;
