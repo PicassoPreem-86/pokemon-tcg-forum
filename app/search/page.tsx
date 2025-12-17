@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -42,7 +42,7 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   
@@ -338,5 +338,37 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function SearchFallback() {
+  return (
+    <div className="search-page">
+      <div className="search-header">
+        <h1 className="search-title">
+          <Search size={28} />
+          Search
+        </h1>
+        <div className="search-form">
+          <div className="search-input-wrapper">
+            <Search size={20} className="search-input-icon" />
+            <input
+              type="text"
+              placeholder="Loading..."
+              className="search-input"
+              disabled
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchFallback />}>
+      <SearchContent />
+    </Suspense>
   );
 }
