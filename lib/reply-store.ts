@@ -2,11 +2,21 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './auth-store';
 
+// Image attachment interface
+export interface ReplyImage {
+  id: string;
+  url: string; // Base64 data URL or external URL
+  alt?: string;
+  width?: number;
+  height?: number;
+}
+
 // Reply interface
 export interface Reply {
   id: string;
   threadId: string;
   content: string;
+  images?: ReplyImage[]; // Attached images
   author: {
     id: string;
     username: string;
@@ -24,6 +34,7 @@ export interface Reply {
   likes: number;
   likedBy: string[]; // User IDs who liked this reply
   quotedReplyId?: string; // If this reply quotes another reply
+  parentReplyId?: string; // For nested/threaded replies - the reply this is responding to
   isEdited: boolean;
 }
 
@@ -31,7 +42,9 @@ export interface Reply {
 export interface CreateReplyData {
   threadId: string;
   content: string;
+  images?: ReplyImage[];
   quotedReplyId?: string;
+  parentReplyId?: string; // For nested replies
 }
 
 // Reply store state
@@ -42,6 +55,8 @@ interface ReplyState {
   // Actions
   createReply: (data: CreateReplyData) => Reply | null;
   getRepliesByThread: (threadId: string) => Reply[];
+  getTopLevelReplies: (threadId: string) => Reply[]; // Get replies without parent (top level)
+  getNestedReplies: (parentReplyId: string) => Reply[]; // Get replies to a specific reply
   getReplyById: (replyId: string) => Reply | undefined;
   deleteReply: (replyId: string) => boolean;
   editReply: (replyId: string, newContent: string) => boolean;
@@ -89,6 +104,7 @@ export const useReplyStore = create<ReplyState>()(
           id: replyId,
           threadId: data.threadId,
           content: data.content.trim(),
+          images: data.images,
           author: {
             id: user.id,
             username: user.username,
@@ -106,6 +122,7 @@ export const useReplyStore = create<ReplyState>()(
           likes: 0,
           likedBy: [],
           quotedReplyId: data.quotedReplyId,
+          parentReplyId: data.parentReplyId,
           isEdited: false,
         };
 
@@ -131,6 +148,23 @@ export const useReplyStore = create<ReplyState>()(
       getRepliesByThread: (threadId: string) => {
         const { repliesByThread } = get();
         return repliesByThread[threadId] || [];
+      },
+
+      getTopLevelReplies: (threadId: string) => {
+        const { repliesByThread } = get();
+        const replies = repliesByThread[threadId] || [];
+        // Return only replies without a parent (top-level replies)
+        return replies.filter((r) => !r.parentReplyId);
+      },
+
+      getNestedReplies: (parentReplyId: string) => {
+        const { repliesByThread } = get();
+        // Search all threads for replies with this parent
+        for (const replies of Object.values(repliesByThread)) {
+          const nested = replies.filter((r) => r.parentReplyId === parentReplyId);
+          if (nested.length > 0) return nested;
+        }
+        return [];
       },
 
       getReplyById: (replyId: string) => {

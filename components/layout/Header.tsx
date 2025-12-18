@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Search,
   Menu,
@@ -23,9 +24,19 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
+  const router = useRouter();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { isAuthenticated, isHydrated } = useAuthStateAfterHydration();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
 
   // Initialize demo account on mount
   useEffect(() => {
@@ -100,7 +111,7 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
               {/* Search */}
               <div className="relative">
                 {isSearchOpen ? (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
+                  <form onSubmit={handleSearch} className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
                     <input
                       type="text"
                       placeholder="Search forums..."
@@ -111,6 +122,7 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                     />
                     <Search className="absolute left-3 h-4 w-4 text-dark-400" />
                     <button
+                      type="button"
                       onClick={() => {
                         setIsSearchOpen(false);
                         setSearchQuery('');
@@ -119,7 +131,7 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                     >
                       <X className="h-4 w-4 text-dark-400" />
                     </button>
-                  </div>
+                  </form>
                 ) : (
                   <button
                     onClick={() => setIsSearchOpen(true)}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -51,6 +51,11 @@ function SearchContent() {
   const [sortBy, setSortBy] = useState<SortBy>('relevance');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Sync query state with URL parameter when it changes
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   // Search threads
   const searchResults = useMemo(() => {
