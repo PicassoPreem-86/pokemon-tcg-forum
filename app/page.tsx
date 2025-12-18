@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import {
   MessageSquare,
   Star,
@@ -84,7 +85,9 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { userThreads } = useThreadStore();
 
   const handleMenuToggle = () => {
@@ -94,6 +97,13 @@ export default function HomePage() {
   const handleMenuClose = useCallback(() => {
     setIsMobileMenuOpen(false);
   }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   // Initialize demo account on mount
   useEffect(() => {
@@ -189,9 +199,14 @@ export default function HomePage() {
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="header-search">
-            <input type="text" placeholder="Search topics, posts, users..." />
-          </div>
+          <form className="header-search" onSubmit={handleSearch}>
+            <input
+              type="text"
+              placeholder="Search topics, posts, users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </form>
 
           <div className="header-actions">
             <UserMenu />
