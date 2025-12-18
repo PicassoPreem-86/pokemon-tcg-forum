@@ -306,6 +306,6 @@ export function getThreadContent(threadId: string): string | undefined {
 }
 
 // Type guard to check if thread has content (is a UserThread)
-export function isUserThread(thread: Thread | UserThread): thread is UserThread {
-  return 'content' in thread;
+export function isUserThread(thread: Thread | UserThread | null | undefined): thread is UserThread {
+  return thread != null && 'content' in thread;
 }

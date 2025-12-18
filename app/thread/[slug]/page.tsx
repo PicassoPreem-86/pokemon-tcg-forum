@@ -1334,7 +1334,7 @@ export default function ThreadBySlugPage() {
   // Thread edit/delete state
   const [isEditingThread, setIsEditingThread] = useState(false);
   const [editTitle, setEditTitle] = useState(thread?.title || '');
-  const [editContent, setEditContent] = useState(isUserThread(thread!) ? (thread as UserThread).content : '');
+  const [editContent, setEditContent] = useState(isUserThread(thread) ? thread.content : '');
   const [showDeleteThreadConfirm, setShowDeleteThreadConfirm] = useState(false);
   const [isDeletingThread, setIsDeletingThread] = useState(false);
   const [isSavingThread, setIsSavingThread] = useState(false);
