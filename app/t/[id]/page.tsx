@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
@@ -65,9 +65,14 @@ function formatJoinDate(dateString: string): string {
 // Post component
 function PostCard({ post, isFirst }: { post: Post; isFirst: boolean }) {
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes);
+  const [likeCount, setLikeCount] = useState(0);
   const trainerRank = getTrainerRank(post.author.postCount);
   const roleInfo = roleConfig[post.author.role];
+
+  // Sync like count after hydration to avoid mismatch
+  useEffect(() => {
+    setLikeCount(post.likes);
+  }, [post.likes]);
 
   const handleLike = () => {
     if (liked) {

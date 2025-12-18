@@ -27,14 +27,20 @@ import {
   Loader2,
   CheckCircle,
   Edit2,
-  Trash2
+  Trash2,
+  ImagePlus,
+  X,
+  GripVertical
 } from 'lucide-react';
 import { getThreadBySlug, isUserThread, useThreadStore, UserThread } from '@/lib/thread-store';
-import { useReplyStore, Reply as ReplyType } from '@/lib/reply-store';
-import { useAuthStore } from '@/lib/auth-store';
+import { useReplyStore, Reply as ReplyType, ReplyImage } from '@/lib/reply-store';
+import { useAuthStore, useAuthStateAfterHydration } from '@/lib/auth-store';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 import { formatNumber } from '@/lib/categories';
+import { insertFormatting } from '@/lib/content-renderer';
+import RichContent from '@/components/forum/RichContent';
+import NestedReplies from '@/components/forum/NestedReplies';
 
 // Role badge colors and icons
 const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -53,6 +59,9 @@ function generatePosts(thread: ReturnType<typeof getThreadBySlug>) {
     ? thread.content
     : thread.excerpt || `Welcome to the discussion about: ${thread.title}\n\nThis thread covers important topics for Pokemon TCG enthusiasts. Feel free to share your thoughts and experiences!`;
 
+  // Deterministic "random" values based on thread id to avoid hydration mismatch
+  const threadHash = thread.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
   const posts = [
     {
       id: 'p1',
@@ -69,16 +78,16 @@ function generatePosts(thread: ReturnType<typeof getThreadBySlug>) {
         signature: thread.author.signature
       },
       createdAt: thread.createdAt,
-      likes: isUserThread(thread) ? 0 : Math.floor(Math.random() * 50) + 10
+      likes: isUserThread(thread) ? 0 : ((threadHash % 40) + 10)
     }
   ];
 
   // Add reply posts if thread has replies
   if (thread.postCount > 1) {
-    const replyAuthors: Array<{ username: string; displayName: string; role: 'member' | 'vip' | 'admin' | 'moderator' | 'newbie' }> = [
-      { username: 'PikachuFan', displayName: 'Pikachu Fan', role: 'member' },
-      { username: 'CharizardMaster', displayName: 'Charizard Master', role: 'vip' },
-      { username: 'TCGCollector', displayName: 'TCG Collector', role: 'member' }
+    const replyAuthors: Array<{ username: string; displayName: string; role: 'member' | 'vip' | 'admin' | 'moderator' | 'newbie'; postCount: number; reputation: number }> = [
+      { username: 'PikachuFan', displayName: 'Pikachu Fan', role: 'member', postCount: 127, reputation: 340 },
+      { username: 'CharizardMaster', displayName: 'Charizard Master', role: 'vip', postCount: 892, reputation: 1250 },
+      { username: 'TCGCollector', displayName: 'TCG Collector', role: 'member', postCount: 256, reputation: 580 }
     ];
 
     for (let i = 0; i < Math.min(thread.postCount - 1, 5); i++) {
@@ -91,14 +100,14 @@ function generatePosts(thread: ReturnType<typeof getThreadBySlug>) {
           displayName: author.displayName,
           avatar: '/images/avatars/default.png',
           role: author.role,
-          postCount: Math.floor(Math.random() * 500) + 50,
-          reputation: Math.floor(Math.random() * 1000) + 100,
+          postCount: author.postCount,
+          reputation: author.reputation,
           joinDate: '2024-06-01',
           location: undefined,
           signature: undefined
         },
         createdAt: new Date(new Date(thread.createdAt).getTime() + (i + 1) * 3600000).toISOString(),
-        likes: Math.floor(Math.random() * 20) + 1
+        likes: ((threadHash + i * 7) % 18) + 2
       });
     }
   }
@@ -136,8 +145,15 @@ interface PostCardProps {
 
 function PostCard({ post, isFirst, onQuote }: PostCardProps) {
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likes);
+  const [likeCount, setLikeCount] = useState(0);
+  const [isHydrated, setIsHydrated] = useState(false);
   const trainerRank = getTrainerRank(post.author.postCount);
+
+  // Sync like count after hydration to avoid mismatch
+  useEffect(() => {
+    setLikeCount(post.likes);
+    setIsHydrated(true);
+  }, [post.likes]);
   const roleInfo = roleConfig[post.author.role] || roleConfig.member;
 
   const handleLike = () => {
@@ -244,12 +260,7 @@ function PostCard({ post, isFirst, onQuote }: PostCardProps) {
 
         {/* Post Content */}
         <div className="post-content">
-          {post.content.split('\n').map((line, i) => {
-            if (line.trim()) {
-              return <p key={i}>{line}</p>;
-            }
-            return null;
-          })}
+          <RichContent content={post.content} />
         </div>
 
         {/* Signature */}
@@ -304,16 +315,274 @@ interface ReplyFormProps {
   quotedContent?: string;
   quotedAuthor?: string;
   onQuoteHandled?: () => void;
+  parentReplyId?: string;
+  replyingToAuthor?: string;
+  onCancelReplyTo?: () => void;
 }
 
-function ReplyForm({ threadId, onReplyPosted, quotedContent, quotedAuthor, onQuoteHandled }: ReplyFormProps) {
+function ReplyForm({
+  threadId,
+  onReplyPosted,
+  quotedContent,
+  quotedAuthor,
+  onQuoteHandled,
+  parentReplyId,
+  replyingToAuthor,
+  onCancelReplyTo
+}: ReplyFormProps) {
   const [content, setContent] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<ReplyImage[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [touchDragIndex, setTouchDragIndex] = useState<number | null>(null);
+  const [touchCloneStyle, setTouchCloneStyle] = useState<React.CSSProperties | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const galleryRef = React.useRef<HTMLDivElement>(null);
+  const touchStartPos = React.useRef<{ x: number; y: number } | null>(null);
+  const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const formRef = React.useRef<HTMLDivElement>(null);
 
-  const { user, isAuthenticated } = useAuthStore();
+  // Handle image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Limit to 4 images max
+    if (uploadedImages.length + files.length > 4) {
+      showErrorToast('Too many images', 'You can only upload up to 4 images per reply');
+      return;
+    }
+
+    setIsUploading(true);
+
+    const newImages: ReplyImage[] = [];
+
+    for (const file of Array.from(files)) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showErrorToast('Invalid file', `${file.name} is not an image`);
+        continue;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showErrorToast('File too large', `${file.name} exceeds 5MB limit`);
+        continue;
+      }
+
+      try {
+        // Convert to base64
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Get image dimensions
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
+          const img = document.createElement('img');
+          img.onload = () => resolve({ width: img.width, height: img.height });
+          img.src = base64;
+        });
+
+        newImages.push({
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          url: base64,
+          alt: file.name,
+          width: dimensions.width,
+          height: dimensions.height,
+        });
+      } catch (error) {
+        showErrorToast('Upload failed', `Failed to process ${file.name}`);
+      }
+    }
+
+    setUploadedImages(prev => [...prev, ...newImages]);
+    setIsUploading(false);
+
+    // Clear the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Remove an uploaded image
+  const removeImage = (imageId: string) => {
+    setUploadedImages(prev => prev.filter(img => img.id !== imageId));
+  };
+
+  // Drag to reorder handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add a slight delay for better visual feedback
+    setTimeout(() => {
+      const target = e.target as HTMLElement;
+      target.classList.add('dragging');
+    }, 0);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    // Reorder images
+    setUploadedImages(prev => {
+      const newImages = [...prev];
+      const [draggedImage] = newImages.splice(draggedIndex, 1);
+      newImages.splice(dropIndex, 0, draggedImage);
+      return newImages;
+    });
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    const target = e.target as HTMLElement;
+    target.classList.remove('dragging');
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // Touch event handlers for mobile drag-to-reorder
+  const handleTouchStart = (e: React.TouchEvent, index: number) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+
+    // Long press to initiate drag (300ms)
+    longPressTimer.current = setTimeout(() => {
+      setTouchDragIndex(index);
+      setDraggedIndex(index);
+
+      // Get the element's position for the clone
+      const target = e.currentTarget as HTMLElement;
+      const rect = target.getBoundingClientRect();
+
+      setTouchCloneStyle({
+        position: 'fixed',
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        zIndex: 10000,
+        pointerEvents: 'none',
+        opacity: 0.9,
+        transform: 'scale(1.1)',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+      });
+
+      // Vibrate for haptic feedback (if supported)
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, 300);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchDragIndex === null) {
+      // Cancel long press if moved before drag started
+      if (longPressTimer.current && touchStartPos.current) {
+        const touch = e.touches[0];
+        const dx = Math.abs(touch.clientX - touchStartPos.current.x);
+        const dy = Math.abs(touch.clientY - touchStartPos.current.y);
+        if (dx > 10 || dy > 10) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      }
+      return;
+    }
+
+    e.preventDefault(); // Prevent scrolling while dragging
+
+    const touch = e.touches[0];
+
+    // Update clone position
+    setTouchCloneStyle(prev => prev ? {
+      ...prev,
+      left: touch.clientX - 40, // Center the clone (half of 80px width)
+      top: touch.clientY - 40,
+    } : null);
+
+    // Find which item we're over
+    if (galleryRef.current) {
+      const items = galleryRef.current.querySelectorAll('.image-preview-item[draggable="true"]');
+      items.forEach((item, idx) => {
+        const rect = item.getBoundingClientRect();
+        if (
+          touch.clientX >= rect.left &&
+          touch.clientX <= rect.right &&
+          touch.clientY >= rect.top &&
+          touch.clientY <= rect.bottom &&
+          idx !== touchDragIndex
+        ) {
+          setDragOverIndex(idx);
+        }
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    // Clear long press timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    // Perform reorder if we have valid indices
+    if (touchDragIndex !== null && dragOverIndex !== null && touchDragIndex !== dragOverIndex) {
+      setUploadedImages(prev => {
+        const newImages = [...prev];
+        const [draggedImage] = newImages.splice(touchDragIndex, 1);
+        newImages.splice(dragOverIndex, 0, draggedImage);
+        return newImages;
+      });
+    }
+
+    // Reset all touch state
+    setTouchDragIndex(null);
+    setTouchCloneStyle(null);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    touchStartPos.current = null;
+  };
+
+  const handleTouchCancel = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    setTouchDragIndex(null);
+    setTouchCloneStyle(null);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    touchStartPos.current = null;
+  };
+
+  const { user, isAuthenticated, isHydrated: isAuthHydrated } = useAuthStateAfterHydration();
   const { createReply } = useReplyStore();
 
   // Handle dynamic quote changes
@@ -351,6 +620,16 @@ function ReplyForm({ threadId, onReplyPosted, quotedContent, quotedAuthor, onQuo
     }
   }, [quotedContent, quotedAuthor, onQuoteHandled]);
 
+  // Handle replying to a specific reply - scroll and focus
+  useEffect(() => {
+    if (replyingToAuthor && parentReplyId) {
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [replyingToAuthor, parentReplyId]);
+
   const handleSubmit = async () => {
     if (!content.trim() || content.trim().length < 5) {
       showErrorToast('Reply too short', 'Reply must be at least 5 characters');
@@ -370,11 +649,15 @@ function ReplyForm({ threadId, onReplyPosted, quotedContent, quotedAuthor, onQuo
     const newReply = createReply({
       threadId,
       content: content.trim(),
+      parentReplyId,
+      images: uploadedImages.length > 0 ? uploadedImages : undefined,
     });
 
     if (newReply) {
       showSuccessToast('Reply posted!', 'Your reply has been added to the thread');
       setContent('');
+      setUploadedImages([]); // Clear uploaded images
+      onCancelReplyTo?.(); // Clear reply-to state
       onReplyPosted?.();
     } else {
       showErrorToast('Failed to post', 'Something went wrong. Please try again.');
@@ -383,8 +666,8 @@ function ReplyForm({ threadId, onReplyPosted, quotedContent, quotedAuthor, onQuo
     setIsSubmitting(false);
   };
 
-  // Show login prompt if not authenticated
-  if (!isAuthenticated) {
+  // Show login prompt if not authenticated (or not yet hydrated to avoid mismatch)
+  if (!isAuthHydrated || !isAuthenticated) {
     return (
       <div className="reply-form reply-form-login">
         <div className="reply-form-header">
@@ -410,6 +693,21 @@ function ReplyForm({ threadId, onReplyPosted, quotedContent, quotedAuthor, onQuo
         )}
       </div>
 
+      {/* Replying to banner */}
+      {replyingToAuthor && (
+        <div className="replying-to-banner">
+          <span>Replying to <strong>@{replyingToAuthor}</strong></span>
+          <button
+            type="button"
+            className="cancel-reply-to"
+            onClick={onCancelReplyTo}
+            title="Cancel reply"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="reply-form-body">
         <div className="reply-avatar">
           <Image
@@ -421,24 +719,199 @@ function ReplyForm({ threadId, onReplyPosted, quotedContent, quotedAuthor, onQuo
         </div>
 
         <div className="reply-editor">
-          <textarea
-            ref={textareaRef}
-            placeholder="Share your thoughts..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            rows={4}
-            disabled={isSubmitting}
-          />
+          {/* Editor/Preview Tabs */}
+          <div className="editor-tabs">
+            <button
+              type="button"
+              className={`editor-tab ${!showPreview ? 'active' : ''}`}
+              onClick={() => setShowPreview(false)}
+            >
+              <Edit2 size={14} />
+              Write
+            </button>
+            <button
+              type="button"
+              className={`editor-tab ${showPreview ? 'active' : ''}`}
+              onClick={() => setShowPreview(true)}
+              disabled={!content.trim()}
+            >
+              <Eye size={14} />
+              Preview
+            </button>
+          </div>
+
+          {/* Textarea (Write mode) */}
+          {!showPreview && (
+            <textarea
+              ref={textareaRef}
+              placeholder="Share your thoughts... (Supports **bold**, *italic*, [links](url), @mentions, #hashtags)"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              rows={4}
+              disabled={isSubmitting}
+            />
+          )}
+
+          {/* Live Preview */}
+          {showPreview && (
+            <div className="reply-preview">
+              {content.trim() ? (
+                <RichContent content={content} />
+              ) : (
+                <p className="preview-empty">Nothing to preview yet...</p>
+              )}
+            </div>
+          )}
+
+          {/* Image Preview Gallery */}
+          {uploadedImages.length > 0 && (
+            <div className="image-preview-gallery" ref={galleryRef}>
+              {uploadedImages.map((img, index) => (
+                <div
+                  key={img.id}
+                  className={`image-preview-item ${draggedIndex === index ? 'dragging' : ''} ${dragOverIndex === index ? 'drag-over' : ''} ${touchDragIndex === index ? 'touch-dragging' : ''}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onTouchStart={(e) => handleTouchStart(e, index)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchCancel={handleTouchCancel}
+                >
+                  <div className="drag-handle" title="Drag to reorder">
+                    <GripVertical size={14} />
+                  </div>
+                  <Image
+                    src={img.url}
+                    alt={img.alt || 'Uploaded image'}
+                    width={80}
+                    height={80}
+                    style={{ objectFit: 'cover', pointerEvents: 'none' }}
+                  />
+                  <div className="image-order-badge">{index + 1}</div>
+                  <button
+                    type="button"
+                    className="image-remove-btn"
+                    onClick={() => removeImage(img.id)}
+                    title="Remove image"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              {isUploading && (
+                <div className="image-preview-item uploading">
+                  <Loader2 size={24} className="spin" />
+                </div>
+              )}
+              {/* Touch drag clone */}
+              {touchDragIndex !== null && touchCloneStyle && uploadedImages[touchDragIndex] && (
+                <div className="touch-drag-clone" style={touchCloneStyle}>
+                  <Image
+                    src={uploadedImages[touchDragIndex].url}
+                    alt="Dragging"
+                    width={80}
+                    height={80}
+                    style={{ objectFit: 'cover', borderRadius: '6px' }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="reply-toolbar">
             <div className="reply-formatting">
-              <button className="format-btn" title="Bold" type="button">B</button>
-              <button className="format-btn" title="Italic" type="button">I</button>
-              <button className="format-btn" title="Link" type="button">🔗</button>
-              <button className="format-btn" title="Image" type="button">🖼️</button>
-              <button className="format-btn" title="Quote" type="button">❝</button>
+              <button
+                className="format-btn"
+                title="Bold (**text**)"
+                type="button"
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const newText = insertFormatting(textareaRef.current, 'bold');
+                    setContent(newText);
+                  }
+                }}
+              >
+                <strong>B</strong>
+              </button>
+              <button
+                className="format-btn"
+                title="Italic (*text*)"
+                type="button"
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const newText = insertFormatting(textareaRef.current, 'italic');
+                    setContent(newText);
+                  }
+                }}
+              >
+                <em>I</em>
+              </button>
+              <button
+                className="format-btn"
+                title="Link [text](url)"
+                type="button"
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const newText = insertFormatting(textareaRef.current, 'link');
+                    setContent(newText);
+                  }
+                }}
+              >
+                🔗
+              </button>
+              <button
+                className="format-btn"
+                title="Code `code`"
+                type="button"
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const newText = insertFormatting(textareaRef.current, 'code');
+                    setContent(newText);
+                  }
+                }}
+              >
+                {'</>'}
+              </button>
+              <button
+                className="format-btn"
+                title="Quote (> text)"
+                type="button"
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const newText = insertFormatting(textareaRef.current, 'quote');
+                    setContent(newText);
+                  }
+                }}
+              >
+                ❝
+              </button>
+              <span className="format-separator" />
+              <button
+                className="format-btn image-upload-btn"
+                title="Add images (max 4)"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadedImages.length >= 4 || isUploading}
+              >
+                <ImagePlus size={16} />
+                {uploadedImages.length > 0 && (
+                  <span className="image-count">{uploadedImages.length}/4</span>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+              />
             </div>
 
             <button
@@ -495,7 +968,7 @@ interface UserReplyCardProps {
 
 function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserReplyCardProps) {
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(reply.likes);
+  const [likeCount, setLikeCount] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(reply.content);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -510,6 +983,11 @@ function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserRepl
   // Check if current user owns this reply
   const isOwner = user && user.id === reply.author.id;
   const canModerate = user && (user.role === 'admin' || user.role === 'moderator');
+
+  // Sync like count after hydration to avoid mismatch
+  useEffect(() => {
+    setLikeCount(reply.likes);
+  }, [reply.likes]);
 
   // Check if current user has liked this reply
   useEffect(() => {
@@ -774,16 +1252,7 @@ function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserRepl
           <>
             {/* Reply Content - View Mode */}
             <div className="post-content">
-              {reply.content.split('\n').map((line, i) => {
-                if (line.trim()) {
-                  // Handle quoted lines
-                  if (line.startsWith('>')) {
-                    return <blockquote key={i}>{line.slice(1).trim()}</blockquote>;
-                  }
-                  return <p key={i}>{line}</p>;
-                }
-                return null;
-              })}
+              <RichContent content={reply.content} />
             </div>
 
             {/* Signature */}
@@ -874,10 +1343,32 @@ export default function ThreadBySlugPage() {
   const [quotedAuthor, setQuotedAuthor] = useState<string | undefined>();
   const [quotedContent, setQuotedContent] = useState<string | undefined>();
 
+  // Reply-to state (for nested replies)
+  const [parentReplyId, setParentReplyId] = useState<string | undefined>();
+  const [replyingToAuthor, setReplyingToAuthor] = useState<string | undefined>();
+
+  // Hydration state for reply count (avoid SSR mismatch)
+  const [isPageHydrated, setIsPageHydrated] = useState(false);
+  useEffect(() => {
+    setIsPageHydrated(true);
+  }, []);
+
   // Handle quote from any post/reply
   const handleQuote = (author: string, content: string) => {
     setQuotedAuthor(author);
     setQuotedContent(content);
+  };
+
+  // Handle reply-to from nested replies
+  const handleReplyTo = (replyId: string, author: string) => {
+    setParentReplyId(replyId);
+    setReplyingToAuthor(author);
+  };
+
+  // Cancel reply-to
+  const handleCancelReplyTo = () => {
+    setParentReplyId(undefined);
+    setReplyingToAuthor(undefined);
   };
 
   // Clear quote after it's been handled
@@ -1017,8 +1508,9 @@ export default function ThreadBySlugPage() {
   const categoryInfo = getCategoryInfo(thread.categoryId);
 
   // Calculate total reply count (mock posts - 1 for OP + user replies)
+  // Only include userReplies.length after hydration to avoid SSR mismatch
   const mockReplyCount = posts.length - 1;
-  const totalReplyCount = mockReplyCount + userReplies.length;
+  const totalReplyCount = mockReplyCount + (isPageHydrated ? userReplies.length : 0);
 
   return (
     <div className="content-container">
@@ -1211,18 +1703,15 @@ export default function ThreadBySlugPage() {
         {posts.map((post, index) => (
           <PostCard key={post.id} post={post} isFirst={index === 0} onQuote={handleQuote} />
         ))}
-
-        {/* User Replies */}
-        {userReplies.map((reply, index) => (
-          <UserReplyCard
-            key={reply.id}
-            reply={reply}
-            replyNumber={posts.length + index + 1}
-            onReplyDeleted={handleReplyPosted}
-            onQuote={handleQuote}
-          />
-        ))}
       </div>
+
+      {/* User Replies - Nested/Threaded */}
+      <NestedReplies
+        threadId={thread.id}
+        onQuote={handleQuote}
+        onReplyTo={handleReplyTo}
+        onRepliesChanged={handleReplyPosted}
+      />
 
       {/* Reply Form */}
       <ReplyForm
@@ -1231,6 +1720,9 @@ export default function ThreadBySlugPage() {
         quotedContent={quotedContent}
         quotedAuthor={quotedAuthor}
         onQuoteHandled={handleQuoteHandled}
+        parentReplyId={parentReplyId}
+        replyingToAuthor={replyingToAuthor}
+        onCancelReplyTo={handleCancelReplyTo}
       />
 
       {/* Quick Navigation */}

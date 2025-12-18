@@ -26,18 +26,24 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Mark component as hydrated after mount
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Initialize demo account on mount
   useEffect(() => {
     initializeDemoAccount();
   }, []);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (only after hydration)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isHydrated && isAuthenticated) {
       router.push('/');
     }
-  }, [isAuthenticated, router]);
+  }, [isHydrated, isAuthenticated, router]);
 
   // Clear errors on input change
   useEffect(() => {
