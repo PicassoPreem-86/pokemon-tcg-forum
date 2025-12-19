@@ -19,7 +19,8 @@ import {
   Menu,
   X,
 } from 'lucide-react';
-import { useAuthStateAfterHydration, useAuthStore, isUserAdmin, initializeDemoAccount } from '@/lib/auth-store';
+import { useAuth } from '@/lib/hooks';
+import { signOut } from '@/lib/actions/auth';
 
 const adminNavItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -38,14 +39,9 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuthStore();
-  const { user, isAuthenticated, isHydrated } = useAuthStateAfterHydration();
+  const { user, isAuthenticated, isHydrated } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    initializeDemoAccount();
-  }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -75,20 +71,23 @@ export default function AdminLayout({
     };
   }, [isMobileMenuOpen]);
 
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin' || user?.role === 'moderator';
+
   // Redirect non-admin users
   useEffect(() => {
-    if (isHydrated && (!isAuthenticated || !isUserAdmin(user))) {
+    if (isHydrated && (!isAuthenticated || !isAdmin)) {
       router.push('/login?redirect=/admin&error=unauthorized');
     }
-  }, [isHydrated, isAuthenticated, user, router]);
+  }, [isHydrated, isAuthenticated, isAdmin, router]);
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
+  const handleLogout = async () => {
+    await signOut();
+    window.location.href = '/';
   };
 
   // Show loading while checking auth
-  if (!isHydrated || !isAuthenticated || !isUserAdmin(user)) {
+  if (!isHydrated || !isAuthenticated || !isAdmin) {
     return (
       <div className="admin-loading">
         <div className="admin-loading-spinner" />
@@ -192,14 +191,14 @@ export default function AdminLayout({
             </button>
             <div className="admin-user-info">
               <Image
-                src={user?.avatar || '/images/avatars/default.png'}
-                alt={user?.displayName || 'Admin'}
+                src={user?.avatar_url || '/images/avatars/default.png'}
+                alt={user?.display_name || user?.username || 'Admin'}
                 width={36}
                 height={36}
                 className="admin-user-avatar"
               />
               <div className="admin-user-details">
-                <span className="admin-user-name">{user?.displayName}</span>
+                <span className="admin-user-name">{user?.display_name || user?.username}</span>
                 <span className="admin-user-role">Administrator</span>
               </div>
             </div>

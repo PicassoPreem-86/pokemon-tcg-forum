@@ -61,6 +61,8 @@ export default function UserMenu() {
   const handleLogout = async () => {
     setIsOpen(false);
     await signOut();
+    // Force a full page reload to clear all client state
+    window.location.href = '/';
   };
 
   // Debug logging

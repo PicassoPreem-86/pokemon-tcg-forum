@@ -15,7 +15,8 @@ import {
   Flame,
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
-import { useAuthStore, useAuthStateAfterHydration } from '@/lib/auth-store';
+import { useAuth } from '@/lib/hooks';
+import { signOut } from '@/lib/actions/auth';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -24,17 +25,17 @@ interface MobileMenuProps {
 
 export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const pathname = usePathname();
-  const { logout } = useAuthStore();
-  const { user, isAuthenticated, isHydrated } = useAuthStateAfterHydration();
+  const { user, isAuthenticated, isHydrated } = useAuth();
 
   // Close menu on route change
   useEffect(() => {
     onClose();
   }, [pathname, onClose]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
     onClose();
+    await signOut();
+    window.location.href = '/';
   };
 
   // Prevent body scroll when menu is open
@@ -148,14 +149,14 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                   onClick={onClose}
                 >
                   <Image
-                    src={user.avatar || '/images/avatars/default.png'}
-                    alt={user.displayName || user.username}
+                    src={user.avatar_url || '/images/avatars/default.png'}
+                    alt={user.display_name || user.username}
                     width={40}
                     height={40}
                     className="mobile-menu-user-avatar"
                   />
                   <div className="mobile-menu-user-details">
-                    <span className="mobile-menu-user-name">{user.displayName || user.username}</span>
+                    <span className="mobile-menu-user-name">{user.display_name || user.username}</span>
                     <span className="mobile-menu-user-username">@{user.username}</span>
                   </div>
                 </Link>
