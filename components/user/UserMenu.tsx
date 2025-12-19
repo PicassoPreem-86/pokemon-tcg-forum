@@ -218,6 +218,20 @@ export default function UserMenu() {
             </Link>
           </div>
 
+          {/* Admin Link (only for admins/moderators) */}
+          {(user.role === 'admin' || user.role === 'moderator') && (
+            <div className="user-menu-admin">
+              <Link
+                href="/admin"
+                className="user-menu-link admin-link"
+                onClick={() => setIsOpen(false)}
+              >
+                <Shield size={18} />
+                <span>Admin Panel</span>
+              </Link>
+            </div>
+          )}
+
           {/* Settings & Logout */}
           <div className="user-menu-footer">
             <Link

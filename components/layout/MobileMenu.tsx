@@ -13,6 +13,7 @@ import {
   Search,
   Clock,
   Flame,
+  Shield,
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
 import { useAuth } from '@/lib/hooks';
@@ -160,6 +161,17 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                     <span className="mobile-menu-user-username">@{user.username}</span>
                   </div>
                 </Link>
+                {/* Admin Link for admins/moderators */}
+                {(user.role === 'admin' || user.role === 'moderator') && (
+                  <Link
+                    href="/admin"
+                    className="mobile-menu-auth-btn admin"
+                    onClick={onClose}
+                  >
+                    <Shield className="w-5 h-5" />
+                    Admin Panel
+                  </Link>
+                )}
                 <button onClick={handleLogout} className="mobile-menu-auth-btn secondary">
                   <LogOut className="w-5 h-5" />
                   Log Out

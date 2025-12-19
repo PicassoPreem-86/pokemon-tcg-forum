@@ -1815,6 +1815,18 @@ a:hover {
   text-decoration: none;
 }
 
+.mobile-menu-auth-btn.admin {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.15));
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.mobile-menu-auth-btn.admin:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(245, 158, 11, 0.25));
+  border-color: rgba(239, 68, 68, 0.5);
+  text-decoration: none;
+}
+
 /* Mobile menu user section (when logged in) */
 .mobile-menu-user {
   display: flex;
@@ -6916,6 +6928,27 @@ a:hover {
   font-size: 11px;
   font-weight: 700;
   border-radius: 10px;
+}
+
+/* Admin section */
+.user-menu-admin {
+  padding: 8px;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.user-menu-link.admin-link {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1));
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+.user-menu-link.admin-link:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.2));
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.user-menu-link.admin-link svg {
+  color: #EF4444;
 }
 
 /* Footer (settings & logout) */
