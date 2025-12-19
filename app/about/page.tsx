@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import { Info, Users, Target, Heart, Sparkles, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'About Us | Pikachu TCG Forum',
-  description: 'Learn about Pikachu TCG Forum - the premier community for Pokemon Trading Card Game enthusiasts, collectors, and competitive players.',
+  title: 'About Us | TCG Gossip',
+  description: 'Learn about TCG Gossip - the premier community for trading card game enthusiasts, collectors, and competitive players.',
 };
 
 export default function AboutPage() {
@@ -11,15 +11,15 @@ export default function AboutPage() {
     <div className="static-page">
       <div className="static-page-header">
         <Info className="static-page-icon" size={32} />
-        <h1>About Pikachu TCG Forum</h1>
+        <h1>About TCG Gossip</h1>
       </div>
 
       <div className="static-page-content">
         <section className="static-section">
           <p className="lead-text">
-            Welcome to Pikachu TCG Forum, the premier online community for Pokemon Trading Card Game
+            Welcome to TCG Gossip, the premier online community for trading card game
             enthusiasts. Whether you&apos;re a seasoned collector, competitive player, or just starting
-            your Pokemon TCG journey, you&apos;ve found your home.
+            your TCG journey, you&apos;ve found your home.
           </p>
         </section>
 
@@ -27,8 +27,8 @@ export default function AboutPage() {
           <h2><Target size={20} /> Our Mission</h2>
           <p>
             Our mission is to create the most welcoming, informative, and engaging community for
-            Pokemon TCG fans worldwide. We strive to connect players and collectors, share knowledge,
-            and foster a positive environment where everyone can enjoy their passion for Pokemon cards.
+            trading card fans worldwide. We strive to connect players and collectors, share knowledge,
+            and foster a positive environment where everyone can enjoy their passion for cards.
           </p>
         </section>
 
@@ -60,7 +60,7 @@ export default function AboutPage() {
           <h2><Users size={20} /> Our Community</h2>
           <p>
             With over 45,000 members and growing, our community includes casual collectors,
-            competitive players, Pokemon professors, and everyone in between. Our dedicated
+            competitive players, judges, and everyone in between. Our dedicated
             moderation team ensures a safe and friendly environment for all ages.
           </p>
           <div className="stats-grid">
@@ -77,7 +77,7 @@ export default function AboutPage() {
               <span className="stat-label">Posts</span>
             </div>
             <div className="stat-card">
-              <span className="stat-number">2019</span>
+              <span className="stat-number">2024</span>
               <span className="stat-label">Founded</span>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function AboutPage() {
           <h2><Heart size={20} /> Join Us</h2>
           <p>
             Ready to become part of our community? Registration is free and takes just a minute.
-            Join thousands of trainers who share your passion for the Pokemon Trading Card Game!
+            Join thousands of collectors who share your passion for trading cards!
           </p>
         </section>
 

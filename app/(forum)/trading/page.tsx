@@ -84,7 +84,7 @@ export default function TradingPage() {
                 </div>
                 <Link
                   href="/trading/new"
-                  className="btn-pikachu flex items-center gap-2 shrink-0"
+                  className="btn-primary flex items-center gap-2 shrink-0"
                 >
                   <Plus className="h-4 w-4" />
                   New Thread
@@ -103,7 +103,7 @@ export default function TradingPage() {
                     className={cn(
                       'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors',
                       sortBy === 'latest'
-                        ? 'bg-pikachu-500/10 text-pikachu-500'
+                        ? 'bg-purple-500/10 text-purple-500'
                         : 'text-dark-400 hover:text-white hover:bg-dark-800'
                     )}
                   >
@@ -115,7 +115,7 @@ export default function TradingPage() {
                     className={cn(
                       'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors',
                       sortBy === 'popular'
-                        ? 'bg-pikachu-500/10 text-pikachu-500'
+                        ? 'bg-purple-500/10 text-purple-500'
                         : 'text-dark-400 hover:text-white hover:bg-dark-800'
                     )}
                   >
@@ -161,7 +161,7 @@ export default function TradingPage() {
               <button className="px-4 py-2 text-sm text-dark-400 hover:text-white bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors">
                 Previous
               </button>
-              <button className="px-4 py-2 text-sm bg-pikachu-500 text-dark-900 font-medium rounded-lg">
+              <button className="px-4 py-2 text-sm bg-purple-500 text-dark-900 font-medium rounded-lg">
                 1
               </button>
               <button className="px-4 py-2 text-sm text-dark-400 hover:text-white bg-dark-800 hover:bg-dark-700 rounded-lg transition-colors">

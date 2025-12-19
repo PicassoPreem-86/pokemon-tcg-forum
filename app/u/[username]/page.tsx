@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
@@ -27,11 +27,20 @@ import {
   UserPlus,
   MoreHorizontal,
   Flame,
-  MessageCircle
+  MessageCircle,
+  Loader2,
+  Settings
 } from 'lucide-react';
-import { getUserByUsername, User, UserBadge } from '@/lib/mock-data/users';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/hooks';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 import { formatNumber } from '@/lib/categories';
+import type { Profile, UserBadge } from '@/lib/supabase/database.types';
+
+// Extended profile type with badges
+type ProfileWithBadges = Profile & {
+  badges: UserBadge[];
+};
 
 // Icon mapping for badges
 const badgeIconMap: Record<string, React.ReactNode> = {
@@ -58,7 +67,8 @@ const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: 
   admin: { color: '#EF4444', icon: <Crown size={16} />, label: 'Administrator' },
   moderator: { color: '#8B5CF6', icon: <Shield size={16} />, label: 'Moderator' },
   vip: { color: '#F59E0B', icon: <Star size={16} />, label: 'VIP Member' },
-  member: { color: '#6B7280', icon: null, label: 'Member' }
+  member: { color: '#6B7280', icon: null, label: 'Member' },
+  newbie: { color: '#10B981', icon: null, label: 'New Trainer' }
 };
 
 // Format join date
@@ -79,29 +89,6 @@ function getDaysSinceJoin(dateString: string): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
-// Generate mock recent activity
-function generateRecentActivity(user: User) {
-  const activities = [
-    { type: 'post', title: `Posted in "Best budget deck for local tournaments?"`, time: '2 hours ago', icon: <MessageSquare size={16} /> },
-    { type: 'like', title: `Liked a post by VintageCollector`, time: '5 hours ago', icon: <Heart size={16} /> },
-    { type: 'thread', title: `Started thread "My latest pulls from Surging Sparks"`, time: '1 day ago', icon: <MessageCircle size={16} /> },
-    { type: 'reply', title: `Replied to "PSA vs CGC comparison"`, time: '2 days ago', icon: <MessageSquare size={16} /> },
-    { type: 'badge', title: `Earned the "Active Member" badge`, time: '1 week ago', icon: <Award size={16} /> },
-  ];
-  return activities.slice(0, 5);
-}
-
-// Generate mock recent threads
-function generateRecentThreads(user: User) {
-  const threads = [
-    { id: '1', title: 'My complete Base Set collection journey', category: 'Collecting', replies: 42, views: 1234, isHot: true },
-    { id: '2', title: 'Best way to store slabbed cards?', category: 'General', replies: 28, views: 567, isHot: false },
-    { id: '3', title: 'Surging Sparks pull rates discussion', category: 'News', replies: 89, views: 2341, isHot: true },
-    { id: '4', title: 'Looking for Base Set trades', category: 'Trading', replies: 15, views: 234, isHot: false },
-  ];
-  return threads;
-}
-
 // Badge component
 function BadgeCard({ badge }: { badge: UserBadge }) {
   return (
@@ -111,7 +98,7 @@ function BadgeCard({ badge }: { badge: UserBadge }) {
       </div>
       <div className="profile-badge-info">
         <span className="profile-badge-name" style={{ color: badge.color }}>{badge.name}</span>
-        <span className="profile-badge-desc">{badge.description}</span>
+        <span className="profile-badge-desc">Awarded on {formatJoinDate(badge.awarded_at)}</span>
       </div>
     </div>
   );
@@ -133,10 +120,108 @@ function StatCard({ icon, value, label, color }: { icon: React.ReactNode; value:
 export default function UserProfilePage() {
   const params = useParams();
   const username = params.username as string;
-  const user = getUserByUsername(username);
-  const [activeTab, setActiveTab] = useState<'activity' | 'threads' | 'badges'>('activity');
+  const { user: currentUser, isAuthenticated } = useAuth();
 
-  if (!user) {
+  const [profile, setProfile] = useState<ProfileWithBadges | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'activity' | 'threads' | 'badges'>('activity');
+  const [threads, setThreads] = useState<Array<{
+    id: string;
+    slug: string;
+    title: string;
+    category_name: string;
+    post_count: number;
+    view_count: number;
+    is_hot: boolean;
+  }>>([]);
+
+  // Check if viewing own profile
+  const isOwnProfile = currentUser?.username === username;
+
+  // Fetch user profile
+  useEffect(() => {
+    async function fetchProfile() {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('Profile page: Fetching profile for username:', username);
+      const supabase = getSupabaseClient();
+
+      // Fetch profile with badges
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profileData, error: profileError } = await (supabase as any)
+        .from('profiles')
+        .select(`
+          *,
+          badges:user_badges(*)
+        `)
+        .eq('username', username)
+        .single() as { data: ProfileWithBadges | null; error: Error | null };
+
+      console.log('Profile page: Query result:', { profileData: profileData?.username, error: profileError?.message });
+
+      if (profileError || !profileData) {
+        console.error('Error fetching profile:', profileError);
+        setError(`User "${username}" not found`);
+        setIsLoading(false);
+        return;
+      }
+
+      setProfile(profileData);
+
+      // Fetch user's threads
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: threadData } = await (supabase as any)
+        .from('threads')
+        .select(`
+          id,
+          slug,
+          title,
+          post_count,
+          view_count,
+          is_hot,
+          category:categories(name)
+        `)
+        .eq('author_id', profileData.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (threadData) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setThreads(threadData.map((t: any) => ({
+          id: t.id,
+          slug: t.slug,
+          title: t.title,
+          category_name: t.category?.name || 'General',
+          post_count: t.post_count,
+          view_count: t.view_count,
+          is_hot: t.is_hot
+        })));
+      }
+
+      setIsLoading(false);
+    }
+
+    if (username) {
+      fetchProfile();
+    }
+  }, [username]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="content-container">
+        <div className="profile-loading">
+          <Loader2 size={48} className="spin" />
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !profile) {
     return (
       <div className="content-container">
         <div className="profile-not-found">
@@ -144,7 +229,7 @@ export default function UserProfilePage() {
             <Users size={64} />
           </div>
           <h1>User Not Found</h1>
-          <p>The user "{username}" doesn't exist or has been removed.</p>
+          <p>The user &quot;{username}&quot; doesn&apos;t exist or has been removed.</p>
           <Link href="/" className="btn btn-primary">
             Back to Home
           </Link>
@@ -153,11 +238,9 @@ export default function UserProfilePage() {
     );
   }
 
-  const trainerRank = getTrainerRank(user.postCount);
-  const roleInfo = roleConfig[user.role];
-  const daysSinceJoin = getDaysSinceJoin(user.joinDate);
-  const recentActivity = generateRecentActivity(user);
-  const recentThreads = generateRecentThreads(user);
+  const trainerRank = getTrainerRank(profile.post_count || 0);
+  const roleInfo = roleConfig[profile.role] || roleConfig.member;
+  const daysSinceJoin = getDaysSinceJoin(profile.created_at);
 
   return (
     <div className="content-container">
@@ -174,15 +257,14 @@ export default function UserProfilePage() {
           <div className="profile-avatar-container">
             <div className="profile-avatar">
               <Image
-                src="/images/avatars/default.png"
-                alt={user.displayName}
+                src={profile.avatar_url || '/images/avatars/default.png'}
+                alt={profile.display_name || profile.username}
                 width={120}
                 height={120}
                 className="profile-avatar-img"
               />
-              {user.isOnline && <span className="profile-online-badge" />}
             </div>
-            {user.role !== 'member' && (
+            {profile.role !== 'member' && profile.role !== 'newbie' && (
               <div className="profile-role-badge" style={{ backgroundColor: roleInfo.color }}>
                 {roleInfo.icon}
               </div>
@@ -192,15 +274,10 @@ export default function UserProfilePage() {
           {/* User Details */}
           <div className="profile-details">
             <div className="profile-name-row">
-              <h1 className="profile-display-name">{user.displayName}</h1>
-              {user.isOnline ? (
-                <span className="profile-status online">Online</span>
-              ) : (
-                <span className="profile-status offline">Offline</span>
-              )}
+              <h1 className="profile-display-name">{profile.display_name || profile.username}</h1>
             </div>
 
-            <p className="profile-username">@{user.username}</p>
+            <p className="profile-username">@{profile.username}</p>
 
             <div className="profile-ranks">
               {/* Trainer Rank */}
@@ -217,7 +294,7 @@ export default function UserProfilePage() {
               </div>
 
               {/* Role */}
-              {user.role !== 'member' && (
+              {profile.role !== 'member' && profile.role !== 'newbie' && (
                 <div
                   className="profile-role-tag"
                   style={{ backgroundColor: `${roleInfo.color}20`, color: roleInfo.color }}
@@ -229,21 +306,21 @@ export default function UserProfilePage() {
             </div>
 
             {/* Bio */}
-            {user.bio && (
-              <p className="profile-bio">{user.bio}</p>
+            {profile.bio && (
+              <p className="profile-bio">{profile.bio}</p>
             )}
 
             {/* Meta Info */}
             <div className="profile-meta">
-              {user.location && (
+              {profile.location && (
                 <div className="profile-meta-item">
                   <MapPin size={16} />
-                  <span>{user.location}</span>
+                  <span>{profile.location}</span>
                 </div>
               )}
               <div className="profile-meta-item">
                 <Calendar size={16} />
-                <span>Joined {formatJoinDate(user.joinDate)}</span>
+                <span>Joined {formatJoinDate(profile.created_at)}</span>
               </div>
               <div className="profile-meta-item">
                 <Clock size={16} />
@@ -254,14 +331,23 @@ export default function UserProfilePage() {
 
           {/* Action Buttons */}
           <div className="profile-actions">
-            <button className="btn btn-primary">
-              <UserPlus size={16} />
-              Follow
-            </button>
-            <button className="btn btn-secondary">
-              <Mail size={16} />
-              Message
-            </button>
+            {isOwnProfile ? (
+              <Link href="/settings" className="btn btn-primary">
+                <Settings size={16} />
+                Edit Profile
+              </Link>
+            ) : (
+              <>
+                <button className="btn btn-primary">
+                  <UserPlus size={16} />
+                  Follow
+                </button>
+                <button className="btn btn-secondary">
+                  <Mail size={16} />
+                  Message
+                </button>
+              </>
+            )}
             <button className="btn btn-ghost">
               <MoreHorizontal size={16} />
             </button>
@@ -273,33 +359,27 @@ export default function UserProfilePage() {
       <div className="profile-stats">
         <StatCard
           icon={<MessageSquare size={24} />}
-          value={formatNumber(user.postCount)}
+          value={formatNumber(profile.post_count || 0)}
           label="Posts"
           color="#3B82F6"
         />
         <StatCard
           icon={<Star size={24} />}
-          value={formatNumber(user.reputation)}
+          value={formatNumber(profile.reputation || 0)}
           label="Reputation"
           color="#F59E0B"
         />
         <StatCard
           icon={<Heart size={24} />}
-          value={formatNumber(Math.floor(user.reputation * 0.8))}
+          value={formatNumber(Math.floor((profile.reputation || 0) * 0.8))}
           label="Likes Received"
           color="#EF4444"
         />
         <StatCard
           icon={<Trophy size={24} />}
-          value={user.badges.length.toString()}
+          value={(profile.badges?.length || 0).toString()}
           label="Badges"
           color="#8B5CF6"
-        />
-        <StatCard
-          icon={<Users size={24} />}
-          value={formatNumber(Math.floor(user.postCount * 0.3))}
-          label="Followers"
-          color="#10B981"
         />
       </div>
 
@@ -317,14 +397,14 @@ export default function UserProfilePage() {
           onClick={() => setActiveTab('threads')}
         >
           <MessageCircle size={16} />
-          Threads
+          Threads ({threads.length})
         </button>
         <button
           className={`profile-tab ${activeTab === 'badges' ? 'active' : ''}`}
           onClick={() => setActiveTab('badges')}
         >
           <Award size={16} />
-          Badges ({user.badges.length})
+          Badges ({profile.badges?.length || 0})
         </button>
       </div>
 
@@ -333,56 +413,74 @@ export default function UserProfilePage() {
         {/* Activity Tab */}
         {activeTab === 'activity' && (
           <div className="profile-activity">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="profile-activity-item">
-                <div className="profile-activity-icon">
-                  {activity.icon}
+            {threads.length > 0 ? (
+              threads.slice(0, 5).map((thread) => (
+                <div key={thread.id} className="profile-activity-item">
+                  <div className="profile-activity-icon">
+                    <MessageCircle size={16} />
+                  </div>
+                  <div className="profile-activity-content">
+                    <Link href={`/t/${thread.slug}`} className="profile-activity-title">
+                      Started thread &quot;{thread.title}&quot;
+                    </Link>
+                    <span className="profile-activity-time">in {thread.category_name}</span>
+                  </div>
                 </div>
-                <div className="profile-activity-content">
-                  <p className="profile-activity-title">{activity.title}</p>
-                  <span className="profile-activity-time">{activity.time}</span>
-                </div>
+              ))
+            ) : (
+              <div className="profile-no-activity">
+                <MessageSquare size={48} />
+                <p>No recent activity</p>
+                <span>This user hasn&apos;t posted yet</span>
               </div>
-            ))}
+            )}
           </div>
         )}
 
         {/* Threads Tab */}
         {activeTab === 'threads' && (
           <div className="profile-threads">
-            {recentThreads.map((thread) => (
-              <Link key={thread.id} href={`/t/${thread.id}`} className="profile-thread-item">
-                <div className="profile-thread-content">
-                  <div className="profile-thread-title-row">
-                    {thread.isHot && (
-                      <span className="badge badge-hot">
-                        <Flame size={12} /> Hot
-                      </span>
-                    )}
-                    <h3 className="profile-thread-title">{thread.title}</h3>
+            {threads.length > 0 ? (
+              threads.map((thread) => (
+                <Link key={thread.id} href={`/t/${thread.slug}`} className="profile-thread-item">
+                  <div className="profile-thread-content">
+                    <div className="profile-thread-title-row">
+                      {thread.is_hot && (
+                        <span className="badge badge-hot">
+                          <Flame size={12} /> Hot
+                        </span>
+                      )}
+                      <h3 className="profile-thread-title">{thread.title}</h3>
+                    </div>
+                    <span className="profile-thread-category">{thread.category_name}</span>
                   </div>
-                  <span className="profile-thread-category">{thread.category}</span>
-                </div>
-                <div className="profile-thread-stats">
-                  <div className="profile-thread-stat">
-                    <MessageSquare size={14} />
-                    {thread.replies}
+                  <div className="profile-thread-stats">
+                    <div className="profile-thread-stat">
+                      <MessageSquare size={14} />
+                      {thread.post_count}
+                    </div>
+                    <div className="profile-thread-stat">
+                      <Eye size={14} />
+                      {formatNumber(thread.view_count)}
+                    </div>
                   </div>
-                  <div className="profile-thread-stat">
-                    <Eye size={14} />
-                    {formatNumber(thread.views)}
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))
+            ) : (
+              <div className="profile-no-threads">
+                <MessageCircle size={48} />
+                <p>No threads yet</p>
+                <span>This user hasn&apos;t started any threads</span>
+              </div>
+            )}
           </div>
         )}
 
         {/* Badges Tab */}
         {activeTab === 'badges' && (
           <div className="profile-badges">
-            {user.badges.length > 0 ? (
-              user.badges.map((badge) => (
+            {profile.badges && profile.badges.length > 0 ? (
+              profile.badges.map((badge) => (
                 <BadgeCard key={badge.id} badge={badge} />
               ))
             ) : (
@@ -405,13 +503,13 @@ export default function UserProfilePage() {
             <div className="profile-quick-stat">
               <span className="quick-stat-label">Posts per day</span>
               <span className="quick-stat-value">
-                {(user.postCount / daysSinceJoin).toFixed(1)}
+                {daysSinceJoin > 0 ? ((profile.post_count || 0) / daysSinceJoin).toFixed(1) : '0'}
               </span>
             </div>
             <div className="profile-quick-stat">
               <span className="quick-stat-label">Rep per post</span>
               <span className="quick-stat-value">
-                {(user.reputation / user.postCount).toFixed(2)}
+                {(profile.post_count || 0) > 0 ? ((profile.reputation || 0) / (profile.post_count || 1)).toFixed(2) : '0'}
               </span>
             </div>
             <div className="profile-quick-stat">
@@ -424,16 +522,16 @@ export default function UserProfilePage() {
         </div>
 
         {/* Top Badges */}
-        {user.badges.length > 0 && (
+        {profile.badges && profile.badges.length > 0 && (
           <div className="profile-widget">
             <h3 className="profile-widget-title">Featured Badges</h3>
             <div className="profile-featured-badges">
-              {user.badges.slice(0, 3).map((badge) => (
+              {profile.badges.slice(0, 3).map((badge) => (
                 <div
                   key={badge.id}
                   className="profile-featured-badge"
                   style={{ backgroundColor: `${badge.color}20`, borderColor: badge.color }}
-                  title={badge.description}
+                  title={badge.name}
                 >
                   <span style={{ color: badge.color }}>
                     {badgeIconMap[badge.icon] || <Star size={14} />}
@@ -441,6 +539,16 @@ export default function UserProfilePage() {
                   <span style={{ color: badge.color }}>{badge.name}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Signature */}
+        {profile.signature && (
+          <div className="profile-widget">
+            <h3 className="profile-widget-title">Signature</h3>
+            <div className="profile-signature">
+              {profile.signature}
             </div>
           </div>
         )}

@@ -1,22 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Search,
   Menu,
   X,
   Bell,
-  User,
-  LogIn,
-  ChevronDown,
   Zap,
 } from 'lucide-react';
-import { NAV_ITEMS, SITE_CONFIG } from '@/lib/config';
+import { NAV_ITEMS } from '@/lib/config';
 import { cn } from '@/lib/utils';
 import UserMenu from '@/components/user/UserMenu';
-import { useAuthStateAfterHydration, initializeDemoAccount } from '@/lib/auth-store';
+import { useAuth } from '@/lib/hooks';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -27,7 +25,7 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
   const router = useRouter();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { isAuthenticated, isHydrated } = useAuthStateAfterHydration();
+  const { isAuthenticated, isHydrated } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,19 +36,14 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
     }
   };
 
-  // Initialize demo account on mount
-  useEffect(() => {
-    initializeDemoAccount();
-  }, []);
-
   return (
     <header className="sticky top-0 z-50 w-full">
       {/* Promotional Banner */}
-      <div className="bg-gradient-to-r from-pikachu-600 via-pikachu-500 to-pikachu-600 text-dark-900 py-2 px-4 text-center text-sm font-medium">
+      <div className="bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-600 text-white py-2 px-4 text-center text-sm font-medium">
         <span className="flex items-center justify-center gap-2">
           <Zap className="h-4 w-4" />
-          New Scarlet & Violet: Surging Sparks set discussion now live!
-          <Link href="/news" className="underline hover:no-underline ml-1">
+          Hot Topic: New Pokemon Surging Sparks set discussion now live!
+          <Link href="/hot" className="underline hover:no-underline ml-1">
             Join the discussion →
           </Link>
         </span>
@@ -74,19 +67,16 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                 )}
               </button>
 
-              <Link href="/" className="flex items-center gap-3 group">
-                {/* Pikachu-style Logo */}
-                <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-pikachu-400 to-pikachu-600 flex items-center justify-center shadow-lg group-hover:shadow-pikachu-500/30 transition-shadow">
-                  <Zap className="h-6 w-6 text-dark-900" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-dark-900" />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-lg font-bold text-white leading-none">
-                    {SITE_CONFIG.name.split(' ')[0]}{' '}
-                    <span className="text-pikachu-500">TCG</span>
-                  </h1>
-                  <p className="text-xs text-dark-400">Forum</p>
-                </div>
+              <Link href="/" className="flex items-center group">
+                {/* TCG Gossip Logo */}
+                <Image
+                  src="/images/tcg-gossip-logo.png"
+                  alt="TCG Gossip"
+                  width={160}
+                  height={50}
+                  className="h-10 sm:h-12 w-auto object-contain"
+                  priority
+                />
               </Link>
             </div>
 
@@ -117,7 +107,7 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                       placeholder="Search forums..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64 pl-10 pr-4 py-2 bg-dark-800 border border-dark-600 rounded-lg text-sm text-white placeholder-dark-400 focus:outline-none focus:border-pikachu-500 focus:ring-1 focus:ring-pikachu-500"
+                      className="w-64 pl-10 pr-4 py-2 bg-dark-800 border border-dark-600 rounded-lg text-sm text-white placeholder-dark-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                       autoFocus
                     />
                     <Search className="absolute left-3 h-4 w-4 text-dark-400" />
@@ -150,7 +140,7 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                   aria-label="Notifications"
                 >
                   <Bell className="h-5 w-5 text-dark-300" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-pikachu-500 rounded-full" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-fuchsia-500 rounded-full" />
                 </button>
               )}
 
@@ -168,31 +158,31 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
             <div className="flex items-center gap-6 h-10 text-sm">
               <Link
                 href="/forums"
-                className="text-dark-400 hover:text-pikachu-500 transition-colors"
+                className="text-dark-400 hover:text-purple-400 transition-colors"
               >
                 What&apos;s New
               </Link>
               <Link
                 href="/forums?filter=latest"
-                className="text-dark-400 hover:text-pikachu-500 transition-colors"
+                className="text-dark-400 hover:text-purple-400 transition-colors"
               >
                 New Posts
               </Link>
               <Link
                 href="/forums?filter=trending"
-                className="text-dark-400 hover:text-pikachu-500 transition-colors"
+                className="text-dark-400 hover:text-purple-400 transition-colors"
               >
                 Trending
               </Link>
               <Link
                 href="/members"
-                className="text-dark-400 hover:text-pikachu-500 transition-colors"
+                className="text-dark-400 hover:text-purple-400 transition-colors"
               >
                 Members
               </Link>
               <div className="flex-1" />
               <span className="text-dark-500">
-                <span className="text-pikachu-500 font-medium">2,847</span> trainers online
+                <span className="text-purple-400 font-medium">2,847</span> collectors online
               </span>
             </div>
           </div>

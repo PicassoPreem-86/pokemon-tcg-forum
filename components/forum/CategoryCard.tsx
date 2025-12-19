@@ -127,7 +127,7 @@ export default function CategoryCard({
           </div>
 
           {/* Content */}
-          <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-pikachu-400 transition-colors">
+          <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-purple-400 transition-colors">
             {category.name}
           </h3>
           <p className="text-sm text-dark-400 line-clamp-2 mb-4">
@@ -170,7 +170,7 @@ export default function CategoryCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-base font-semibold text-white group-hover:text-pikachu-400 transition-colors">
+            <h3 className="text-base font-semibold text-white group-hover:text-purple-400 transition-colors">
               {category.name}
             </h3>
           </div>

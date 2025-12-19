@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import { Lock, Eye, Database, Shield, Cookie, Mail, Settings, Trash2 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Pikachu TCG Forum',
-  description: 'Learn how Pikachu TCG Forum collects, uses, and protects your personal information. Your privacy is important to us.',
+  title: 'Privacy Policy | TCG Gossip',
+  description: 'Learn how TCG Gossip collects, uses, and protects your personal information. Your privacy is important to us.',
 };
 
 export default function PrivacyPage() {
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
         <section className="static-section">
           <p className="lead-text">
-            At Pikachu TCG Forum, we take your privacy seriously. This policy explains how we collect,
+            At TCG Gossip, we take your privacy seriously. This policy explains how we collect,
             use, and protect your personal information when you use our services.
           </p>
         </section>

@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 70">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FCA5A5"/>
+      <stop offset="50%" stop-color="#EF4444"/>
+      <stop offset="100%" stop-color="#991B1B"/>
+    </linearGradient>
+    <linearGradient id="banner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#374151"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Banner -->
+  <rect x="2" y="8" width="296" height="54" rx="8" fill="url(#banner)"/>
+  <rect x="4" y="10" width="292" height="50" rx="6" stroke="#4B5563" stroke-width="1" fill="none"/>
+
+  <!-- Corner triangles -->
+  <polygon points="2,18 14,8 14,18" fill="#F97316"/>
+  <polygon points="298,18 286,8 286,18" fill="#F97316"/>
+  <polygon points="2,52 14,62 14,52" fill="#DC2626"/>
+  <polygon points="298,52 286,62 286,52" fill="#DC2626"/>
+
+  <!-- TCG text -->
+  <text x="20" y="48" font-family="Arial Black, Gadget, sans-serif" font-size="36" font-weight="900" fill="url(#gold)" stroke="#B45309" stroke-width="1">TCG</text>
+
+  <!-- Spark -->
+  <polygon points="115,25 122,35 115,45 128,35" fill="#FBBF24"/>
+
+  <!-- GOSSIP text -->
+  <text x="132" y="48" font-family="Arial Black, Gadget, sans-serif" font-size="36" font-weight="900" fill="url(#red)" stroke="#991B1B" stroke-width="1">GOSSIP</text>
+
+  <!-- Bubbles -->
+  <circle cx="275" cy="20" r="10" fill="#FBBF24"/>
+  <circle cx="288" cy="32" r="12" fill="#F97316"/>
+  <circle cx="276" cy="45" r="8" fill="#EF4444"/>
+</svg>

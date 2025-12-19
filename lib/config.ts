@@ -1,12 +1,11 @@
 import { SiteConfig, NavItem } from './types';
 
 export const SITE_CONFIG: SiteConfig = {
-  name: 'Pokémon TCG Forum',
-  tagline: 'The Ultimate Trading Card Game Community',
-  description: 'Join the largest Pokémon TCG community. Discuss cards, deck building, tournaments, trading, collections, and more with fellow trainers.',
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://pokemontcgforum.com',
-  twitter: '@pokemontcgforum',
-  discord: 'https://discord.gg/pokemontcg',
+  name: 'TCG Gossip',
+  tagline: 'The Trading Card Community',
+  description: 'Join the hottest trading card community. Discuss Pokemon, Yu-Gi-Oh, Magic, sports cards, deck building, tournaments, trading, and more with fellow collectors.',
+  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://tcggossip.com',
+  twitter: '@tcggossip',
   itemsPerPage: 20,
 };
 
@@ -23,7 +22,6 @@ export const FOOTER_LINKS = {
   community: [
     { label: 'Forums', href: '/forums' },
     { label: 'Members', href: '/members' },
-    { label: 'Discord', href: SITE_CONFIG.discord },
   ],
   resources: [
     { label: 'Price Guides', href: '/price-guides' },
@@ -44,17 +42,16 @@ export const FOOTER_LINKS = {
 };
 
 export const SOCIAL_LINKS = [
-  { name: 'Twitter', href: 'https://twitter.com/pokemontcgforum', icon: 'twitter' },
-  { name: 'Discord', href: SITE_CONFIG.discord, icon: 'discord' },
-  { name: 'YouTube', href: 'https://youtube.com/@pokemontcgforum', icon: 'youtube' },
-  { name: 'Reddit', href: 'https://reddit.com/r/pokemontcgforum', icon: 'reddit' },
-  { name: 'Instagram', href: 'https://instagram.com/pokemontcgforum', icon: 'instagram' },
+  { name: 'Twitter', href: 'https://twitter.com/tcggossip', icon: 'twitter' },
+  { name: 'YouTube', href: 'https://youtube.com/@tcggossip', icon: 'youtube' },
+  { name: 'Reddit', href: 'https://reddit.com/r/tcggossip', icon: 'reddit' },
+  { name: 'Instagram', href: 'https://instagram.com/tcggossip', icon: 'instagram' },
 ];
 
 export const ROLE_COLORS: Record<string, string> = {
   admin: 'bg-red-500 text-white',
   moderator: 'bg-purple-500 text-white',
-  vip: 'bg-pikachu-500 text-dark-900',
+  vip: 'bg-purple-500 text-white',
   member: 'bg-dark-600 text-dark-200',
   newbie: 'bg-green-500 text-white',
 };
@@ -64,5 +61,5 @@ export const ROLE_LABELS: Record<string, string> = {
   moderator: 'Mod',
   vip: 'VIP',
   member: 'Member',
-  newbie: 'New Trainer',
+  newbie: 'New Collector',
 };

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import UserMenu from '@/components/user/UserMenu';
 import {
   MessageSquare,
   Star,
@@ -19,7 +20,6 @@ import {
   Grid3X3,
   Menu,
   Users,
-  MessageCircle,
   FileText,
   Shield,
   ChevronRight,
@@ -27,15 +27,10 @@ import {
 } from 'lucide-react';
 import { CATEGORIES, LATEST_THREADS, FORUM_STATS, ONLINE_USERS, formatNumber, Thread as HomeThread } from '@/lib/categories';
 import { useThreadStore, UserThread } from '@/lib/thread-store';
-import { initializeDemoAccount } from '@/lib/auth-store';
 
 // Dynamic imports for components not needed on initial render
 const MobileMenu = dynamic(() => import('@/components/layout/MobileMenu'), {
   ssr: false,
-});
-const UserMenu = dynamic(() => import('@/components/user/UserMenu'), {
-  ssr: false,
-  loading: () => <div className="user-menu-skeleton" />,
 });
 
 // Helper to format time ago
@@ -105,10 +100,6 @@ export default function HomePage() {
     }
   };
 
-  // Initialize demo account on mount
-  useEffect(() => {
-    initializeDemoAccount();
-  }, []);
 
   // Combine user threads with mock threads for display
   const allThreads = useMemo(() => {
@@ -137,14 +128,13 @@ export default function HomePage() {
         <div className="sidebar-header">
           <Link href="/" className="sidebar-logo">
             <Image
-              src="/images/pikachu-logo.png"
-              alt=""
-              width={40}
-              height={40}
-              className="sidebar-logo-img"
+              src="/images/tcg-gossip-logo.png"
+              alt="TCG Gossip"
+              width={280}
+              height={120}
+              className="w-full h-auto object-contain"
               priority
             />
-            <span className="sidebar-logo-text">PIKACHU TCG</span>
           </Link>
         </div>
 
@@ -152,10 +142,6 @@ export default function HomePage() {
           <Link href="/" className="sidebar-nav-item active">
             <Clock className="w-5 h-5" />
             Latest
-          </Link>
-          <Link href="https://discord.gg/pokemon" className="sidebar-nav-item" target="_blank">
-            <MessageCircle className="w-5 h-5" />
-            Discord Server
           </Link>
           <Link href="/groups" className="sidebar-nav-item">
             <Users className="w-5 h-5" />
@@ -215,30 +201,22 @@ export default function HomePage() {
 
         {/* Content Container */}
         <div className="content-container">
-          {/* Hero Banner with Pikachu */}
-          <div className="hero-banner">
+          {/* Hero Banner */}
+          <div className="hero-banner-full">
             <Image
-              src="/images/pikachu-mascot.png"
-              alt="Pikachu"
-              width={120}
-              height={120}
-              className="hero-mascot"
+              src="/images/hero-banner.png"
+              alt="Welcome to TCG Gossip - The hottest community for trading card collectors"
+              width={1200}
+              height={400}
+              className="hero-banner-image"
               priority
             />
-            <div className="hero-content">
-              <h1 className="hero-title">
-                Welcome to <span>Pikachu TCG Forum</span>
-              </h1>
-              <p className="hero-subtitle">
-                The ultimate community for Pokemon Trading Card Game collectors, players, and enthusiasts.
-              </p>
-            </div>
           </div>
 
           {/* Welcome Box */}
           <div className="welcome-box">
             <p className="welcome-text">
-              <strong>New here?</strong> Join our community of {formatNumber(FORUM_STATS.totalMembers)} trainers! Read the rules and introduce yourself.
+              <strong>New here?</strong> Join our community of {formatNumber(FORUM_STATS.totalMembers)} collectors! Read the rules and introduce yourself.
             </p>
             <Link href="/register" className="btn btn-primary">
               Join Now
@@ -395,24 +373,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Discord Widget */}
-          <div className="discord-widget">
-            <Zap className="discord-widget-icon text-white mx-auto" />
-            <div className="discord-widget-title">Join our Discord!</div>
-            <div className="discord-widget-online">
-              {formatNumber(FORUM_STATS.onlineNow)} trainers online now
-            </div>
-            <Link href="https://discord.gg/pokemon" className="discord-widget-btn" target="_blank">
-              Connect with Discord
-            </Link>
-          </div>
         </div>
 
         {/* Footer */}
         <footer className="footer">
           <div className="footer-content">
             <div className="footer-copyright">
-              &copy; 2024 Pikachu TCG Forum. Pokemon and all related names are trademarks of Nintendo/Creatures Inc./GAME FREAK inc.
+              &copy; {new Date().getFullYear()} TCG Gossip. Trading card names and images are trademarks of their respective owners.
             </div>
             <ul className="footer-links">
               <li><Link href="/about">About</Link></li>

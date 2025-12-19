@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Zap, Twitter, Youtube, MessageCircle } from 'lucide-react';
+import Image from 'next/image';
+import { Twitter, Youtube, MessageCircle } from 'lucide-react';
 import { SITE_CONFIG, FOOTER_LINKS, SOCIAL_LINKS } from '@/lib/config';
 
 const SocialIcon = ({ name }: { name: string }) => {
@@ -8,8 +9,6 @@ const SocialIcon = ({ name }: { name: string }) => {
       return <Twitter className="h-5 w-5" />;
     case 'YouTube':
       return <Youtube className="h-5 w-5" />;
-    case 'Discord':
-      return <MessageCircle className="h-5 w-5" />;
     default:
       return <div className="h-5 w-5 rounded-full bg-dark-600" />;
   }
@@ -23,19 +22,17 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pikachu-400 to-pikachu-600 flex items-center justify-center">
-                <Zap className="h-6 w-6 text-dark-900" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  Pokémon <span className="text-pikachu-500">TCG</span>
-                </h2>
-                <p className="text-xs text-dark-400">Forum</p>
-              </div>
+            <Link href="/" className="inline-block mb-4">
+              <Image
+                src="/images/tcg-gossip-logo.png"
+                alt="TCG Gossip"
+                width={140}
+                height={45}
+                className="h-11 w-auto object-contain"
+              />
             </Link>
             <p className="text-dark-400 text-sm mb-4">
-              {SITE_CONFIG.tagline}
+              The hottest trading card community for collectors and players alike.
             </p>
             {/* Social Links */}
             <div className="flex items-center gap-3">
@@ -45,7 +42,7 @@ export default function Footer() {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 rounded-lg bg-dark-800 hover:bg-dark-700 text-dark-400 hover:text-pikachu-500 transition-colors"
+                  className="p-2 rounded-lg bg-dark-800 hover:bg-dark-700 text-dark-400 hover:text-purple-400 transition-colors"
                   aria-label={social.name}
                 >
                   <SocialIcon name={social.name} />
@@ -62,7 +59,7 @@ export default function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-dark-400 hover:text-pikachu-500 text-sm transition-colors"
+                    className="text-dark-400 hover:text-purple-400 text-sm transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -79,7 +76,7 @@ export default function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-dark-400 hover:text-pikachu-500 text-sm transition-colors"
+                    className="text-dark-400 hover:text-purple-400 text-sm transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -96,7 +93,7 @@ export default function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-dark-400 hover:text-pikachu-500 text-sm transition-colors"
+                    className="text-dark-400 hover:text-purple-400 text-sm transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -113,7 +110,7 @@ export default function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-dark-400 hover:text-pikachu-500 text-sm transition-colors"
+                    className="text-dark-400 hover:text-purple-400 text-sm transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -132,9 +129,9 @@ export default function Footer() {
               &copy; {new Date().getFullYear()} {SITE_CONFIG.name}. All rights reserved.
             </p>
             <p className="text-dark-600 text-xs text-center sm:text-right">
-              Pokémon and all related names are trademarks of Nintendo, Game Freak, and The Pokémon Company.
+              Trading card names and images are trademarks of their respective owners.
               <br className="hidden sm:block" />
-              This site is not affiliated with or endorsed by these companies.
+              This site is not affiliated with or endorsed by any card game publisher.
             </p>
           </div>
         </div>

@@ -16,7 +16,8 @@ import {
   Bookmark,
   Bell
 } from 'lucide-react';
-import { useAuthStore, useAuthStateAfterHydration } from '@/lib/auth-store';
+import { useAuth } from '@/lib/hooks';
+import { signOut } from '@/lib/actions/auth';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 
 // Role badge configuration
@@ -29,8 +30,7 @@ const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: 
 };
 
 export default function UserMenu() {
-  const { logout } = useAuthStore();
-  const { user, isAuthenticated, isHydrated } = useAuthStateAfterHydration();
+  const { user, isAuthenticated, isHydrated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -58,10 +58,13 @@ export default function UserMenu() {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsOpen(false);
-    logout();
+    await signOut();
   };
+
+  // Debug logging
+  console.log('UserMenu state:', { isHydrated, isAuthenticated, user: user?.username || null });
 
   // Show skeleton during SSR/hydration to prevent mismatch
   if (!isHydrated) {
@@ -87,7 +90,7 @@ export default function UserMenu() {
   }
 
   const roleInfo = roleConfig[user.role] || roleConfig.member;
-  const trainerRank = getTrainerRank(user.postCount);
+  const trainerRank = getTrainerRank(user.post_count || 0);
 
   return (
     <div className="user-menu" ref={menuRef}>
@@ -99,8 +102,8 @@ export default function UserMenu() {
       >
         <div className="user-menu-avatar">
           <Image
-            src={user.avatar || '/images/avatars/default.png'}
-            alt={user.displayName || user.username}
+            src={user.avatar_url || '/images/avatars/default.png'}
+            alt={user.display_name || user.username}
             width={36}
             height={36}
           />
@@ -111,7 +114,7 @@ export default function UserMenu() {
             />
           )}
         </div>
-        <span className="user-menu-name">{user.displayName || user.username}</span>
+        <span className="user-menu-name">{user.display_name || user.username}</span>
         <ChevronDown
           size={16}
           className={`user-menu-chevron ${isOpen ? 'rotated' : ''}`}
@@ -124,15 +127,15 @@ export default function UserMenu() {
           <div className="user-menu-header">
             <div className="user-menu-header-avatar">
               <Image
-                src={user.avatar || '/images/avatars/default.png'}
-                alt={user.displayName || user.username}
+                src={user.avatar_url || '/images/avatars/default.png'}
+                alt={user.display_name || user.username}
                 width={48}
                 height={48}
               />
             </div>
             <div className="user-menu-header-info">
               <span className="user-menu-header-name">
-                {user.displayName || user.username}
+                {user.display_name || user.username}
               </span>
               <span className="user-menu-header-username">@{user.username}</span>
               <div className="user-menu-header-badges">
@@ -158,7 +161,7 @@ export default function UserMenu() {
           {/* User Stats */}
           <div className="user-menu-stats">
             <div className="user-menu-stat">
-              <span className="stat-value">{user.postCount}</span>
+              <span className="stat-value">{user.post_count || 0}</span>
               <span className="stat-label">Posts</span>
             </div>
             <div className="user-menu-stat">

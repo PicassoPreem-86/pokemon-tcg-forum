@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import { FileText, AlertTriangle, Scale, Ban, UserCheck, RefreshCw } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | Pikachu TCG Forum',
-  description: 'Read the Terms of Service for Pikachu TCG Forum. Understand your rights and responsibilities as a member of our community.',
+  title: 'Terms of Service | TCG Gossip',
+  description: 'Read the Terms of Service for TCG Gossip. Understand your rights and responsibilities as a member of our community.',
 };
 
 export default function TermsPage() {
@@ -19,7 +19,7 @@ export default function TermsPage() {
 
         <section className="static-section">
           <p className="lead-text">
-            By accessing and using Pikachu TCG Forum, you agree to be bound by these Terms of Service.
+            By accessing and using TCG Gossip, you agree to be bound by these Terms of Service.
             Please read them carefully before using our platform.
           </p>
         </section>
@@ -35,7 +35,7 @@ export default function TermsPage() {
 
         <section className="static-section">
           <h2><Scale size={20} /> 2. User Responsibilities</h2>
-          <p>As a member of Pikachu TCG Forum, you agree to:</p>
+          <p>As a member of TCG Gossip, you agree to:</p>
           <ul>
             <li>Provide accurate information when registering</li>
             <li>Maintain the security of your account credentials</li>
@@ -64,7 +64,7 @@ export default function TermsPage() {
         <section className="static-section">
           <h2><AlertTriangle size={20} /> 4. Trading Disclaimer</h2>
           <p>
-            Pikachu TCG Forum provides a platform for members to discuss and arrange trades. However:
+            TCG Gossip provides a platform for members to discuss and arrange trades. However:
           </p>
           <ul>
             <li>We are not responsible for transactions between members</li>
@@ -78,14 +78,13 @@ export default function TermsPage() {
         <section className="static-section">
           <h2><FileText size={20} /> 5. Content Ownership</h2>
           <p>
-            By posting content on Pikachu TCG Forum, you grant us a non-exclusive, royalty-free license
+            By posting content on TCG Gossip, you grant us a non-exclusive, royalty-free license
             to use, display, and distribute your content on our platform. You retain ownership of your
             original content but are responsible for ensuring you have the rights to share it.
           </p>
           <p>
-            Pokemon, the Pokemon TCG, and all related names and images are trademarks of Nintendo,
-            Creatures Inc., and GAME FREAK inc. This forum is not affiliated with or endorsed by
-            these companies.
+            Trading card names, images, and related intellectual property are trademarks of their respective
+            owners. This forum is not affiliated with or endorsed by any card game publisher.
           </p>
         </section>
 

@@ -188,7 +188,6 @@ export interface SiteConfig {
   description: string;
   url: string;
   twitter: string;
-  discord: string;
   itemsPerPage: number;
 }
 

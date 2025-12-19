@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import { Mail, MessageSquare, Shield, AlertTriangle, HelpCircle, Clock } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Contact Us | Pikachu TCG Forum',
-  description: 'Get in touch with the Pikachu TCG Forum team. Contact us for support, feedback, or general inquiries.',
+  title: 'Contact Us | TCG Gossip',
+  description: 'Get in touch with the TCG Gossip team. Contact us for support, feedback, or general inquiries.',
 };
 
 export default function ContactPage() {
@@ -77,7 +77,6 @@ export default function ContactPage() {
           <ul>
             <li>Post in the <strong>Feedback & Suggestions</strong> thread</li>
             <li>Participate in community polls and discussions</li>
-            <li>Join our Discord server for real-time conversations</li>
           </ul>
         </section>
 
@@ -116,7 +115,7 @@ export default function ContactPage() {
           <h2>Join Our Community</h2>
           <p>
             The best way to stay connected is to be an active member of our community. Register for
-            free and join thousands of Pokemon TCG enthusiasts!
+            free and join thousands of trading card enthusiasts!
           </p>
         </section>
       </div>

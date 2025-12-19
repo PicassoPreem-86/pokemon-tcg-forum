@@ -35,7 +35,7 @@ export default function ThreadCard({
       >
         {/* Status Icons */}
         <div className="flex items-center gap-1 shrink-0">
-          {thread.isPinned && <Pin className="h-3.5 w-3.5 text-pikachu-500" />}
+          {thread.isPinned && <Pin className="h-3.5 w-3.5 text-purple-500" />}
           {thread.isHot && <Flame className="h-3.5 w-3.5 text-orange-500" />}
           {thread.isLocked && <Lock className="h-3.5 w-3.5 text-dark-500" />}
         </div>
@@ -61,7 +61,7 @@ export default function ThreadCard({
     return (
       <Link
         href={`/${thread.categoryId}/${thread.slug}`}
-        className="block p-5 rounded-xl bg-gradient-to-br from-dark-800 to-dark-850 border border-pikachu-500/30 hover:border-pikachu-500 transition-all group"
+        className="block p-5 rounded-xl bg-gradient-to-br from-dark-800 to-dark-850 border border-purple-500/30 hover:border-purple-500 transition-all group"
       >
         <div className="flex items-start gap-4">
           {/* Author Avatar */}
@@ -96,9 +96,9 @@ export default function ThreadCard({
             )}
 
             {/* Title */}
-            <h3 className="text-lg font-semibold text-white group-hover:text-pikachu-400 transition-colors line-clamp-2 mb-2">
+            <h3 className="text-lg font-semibold text-white group-hover:text-purple-400 transition-colors line-clamp-2 mb-2">
               {thread.isPinned && (
-                <Pin className="inline h-4 w-4 text-pikachu-500 mr-2" />
+                <Pin className="inline h-4 w-4 text-purple-500 mr-2" />
               )}
               {thread.isHot && (
                 <Flame className="inline h-4 w-4 text-orange-500 mr-2" />
@@ -160,7 +160,7 @@ export default function ThreadCard({
         <div className="flex items-center gap-2 mb-1">
           {/* Status Icons */}
           {thread.isPinned && (
-            <Pin className="h-4 w-4 text-pikachu-500 shrink-0" />
+            <Pin className="h-4 w-4 text-purple-500 shrink-0" />
           )}
           {thread.isHot && (
             <Flame className="h-4 w-4 text-orange-500 shrink-0" />
@@ -183,7 +183,7 @@ export default function ThreadCard({
         </div>
 
         {/* Title */}
-        <h4 className="text-sm font-medium text-white group-hover:text-pikachu-400 transition-colors line-clamp-1 mb-1">
+        <h4 className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors line-clamp-1 mb-1">
           {thread.title}
         </h4>
 

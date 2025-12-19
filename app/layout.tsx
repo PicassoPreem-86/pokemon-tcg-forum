@@ -4,6 +4,7 @@ import './globals.css';
 import { SITE_CONFIG } from '@/lib/config';
 import { HomepageJsonLd } from '@/components/seo';
 import ToastContainer from '@/components/ui/ToastContainer';
+import { AuthProvider } from '@/lib/hooks';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -65,8 +66,10 @@ export default function RootLayout({
         <HomepageJsonLd />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
-        <ToastContainer />
+        <AuthProvider>
+          {children}
+          <ToastContainer />
+        </AuthProvider>
       </body>
     </html>
   );

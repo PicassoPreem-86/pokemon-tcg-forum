@@ -84,7 +84,7 @@ export default function Sidebar({ isOpen = true, onToggle, className }: SidebarP
               className={cn(
                 'flex items-center justify-center p-2 rounded-lg transition-colors',
                 isActiveCategory(category.slug)
-                  ? 'bg-dark-700 text-pikachu-500'
+                  ? 'bg-dark-700 text-purple-500'
                   : 'text-dark-400 hover:bg-dark-800 hover:text-white'
               )}
               title={category.name}
@@ -142,10 +142,10 @@ export default function Sidebar({ isOpen = true, onToggle, className }: SidebarP
           {/* Online Users Widget */}
           <div className="bg-dark-800 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Users className="h-4 w-4 text-pikachu-500" />
+              <Users className="h-4 w-4 text-purple-500" />
               <span className="text-sm font-medium text-white">Online Now</span>
             </div>
-            <div className="text-2xl font-bold text-pikachu-500 mb-1">
+            <div className="text-2xl font-bold text-purple-500 mb-1">
               2,847
             </div>
             <p className="text-xs text-dark-400">

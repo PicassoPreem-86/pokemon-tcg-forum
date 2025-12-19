@@ -7,7 +7,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Clock,
-  MessageCircle,
   Users,
   Shield,
   FileText,
@@ -61,14 +60,13 @@ export default function ForumLayout({ children }: ForumLayoutProps) {
         <div className="sidebar-header">
           <Link href="/" className="sidebar-logo">
             <Image
-              src="/images/pikachu-logo.png"
-              alt=""
-              width={40}
-              height={40}
-              className="sidebar-logo-img"
+              src="/images/tcg-gossip-logo.png"
+              alt="TCG Gossip"
+              width={280}
+              height={120}
+              className="w-full h-auto object-contain"
               priority
             />
-            <span className="sidebar-logo-text">PIKACHU TCG</span>
           </Link>
         </div>
 
@@ -76,10 +74,6 @@ export default function ForumLayout({ children }: ForumLayoutProps) {
           <Link href="/" className="sidebar-nav-item">
             <Clock className="w-5 h-5" />
             Latest
-          </Link>
-          <Link href="https://discord.gg/pokemon" className="sidebar-nav-item" target="_blank">
-            <MessageCircle className="w-5 h-5" />
-            Discord Server
           </Link>
           <Link href="/groups" className="sidebar-nav-item">
             <Users className="w-5 h-5" />
@@ -140,7 +134,7 @@ export default function ForumLayout({ children }: ForumLayoutProps) {
         <footer className="footer">
           <div className="footer-content">
             <div className="footer-copyright">
-              &copy; 2024 Pikachu TCG Forum. Pokemon and all related names are trademarks of Nintendo/Creatures Inc./GAME FREAK inc.
+              &copy; {new Date().getFullYear()} TCG Gossip. Trading card names and images are trademarks of their respective owners.
             </div>
             <ul className="footer-links">
               <li><Link href="/about">About</Link></li>

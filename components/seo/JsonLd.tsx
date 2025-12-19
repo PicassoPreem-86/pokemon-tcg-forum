@@ -9,13 +9,12 @@ export function OrganizationJsonLd() {
     name: SITE_CONFIG.name,
     description: SITE_CONFIG.description,
     url: SITE_CONFIG.url,
-    logo: `${SITE_CONFIG.url}/images/pikachu-logo.png`,
+    logo: `${SITE_CONFIG.url}/images/logo.svg`,
     sameAs: [
-      'https://twitter.com/pokemontcgforum',
-      'https://discord.gg/pokemontcg',
-      'https://youtube.com/@pokemontcgforum',
-      'https://reddit.com/r/pokemontcgforum',
-      'https://instagram.com/pokemontcgforum',
+      'https://twitter.com/tcggossip',
+      'https://youtube.com/@tcggossip',
+      'https://reddit.com/r/tcggossip',
+      'https://instagram.com/tcggossip',
     ],
     contactPoint: {
       '@type': 'ContactPoint',
@@ -140,7 +139,7 @@ export function ThreadJsonLd({
       name: SITE_CONFIG.name,
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_CONFIG.url}/images/pikachu-logo.png`,
+        url: `${SITE_CONFIG.url}/images/logo.svg`,
       },
     },
     mainEntityOfPage: {
