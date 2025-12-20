@@ -32,10 +32,6 @@ export function parseInlineFormatting(text: string): ParsedSegment[] {
     { regex: /#(\w+)/g, type: 'hashtag' as const },
   ];
 
-  // Simple approach: process text character by character with state
-  let remaining = text;
-  let lastIndex = 0;
-
   // Build a list of all matches with their positions
   interface Match {
     start: number;

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
 import { Search, Layers, Sparkles } from 'lucide-react';
 
 // Mock card data
@@ -82,6 +81,11 @@ export default function CardsPage() {
           return a.name.localeCompare(b.name);
       }
     });
+
+    // Set filter
+    if (selectedSet !== 'all') {
+      cards = cards.filter(card => card.set === selectedSet);
+    }
 
     return cards;
   }, [searchQuery, selectedSet, selectedRarity, sortBy]);

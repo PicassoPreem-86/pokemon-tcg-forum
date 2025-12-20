@@ -11,7 +11,6 @@ import {
   Clock,
   Bell,
   BellOff,
-  ChevronDown,
   Flame,
   Pin,
   Tag

@@ -3,6 +3,7 @@ import { MessageSquare, Eye, Pin, Lock, Flame } from 'lucide-react';
 import { Thread } from '@/lib/types';
 import { cn, formatNumber, formatRelativeTime, getInitials, generateAvatarColor } from '@/lib/utils';
 import { getCategoryBySlug } from '@/lib/categories';
+import BookmarkButton from './BookmarkButton';
 
 interface ThreadCardProps {
   thread: Thread;
@@ -72,6 +73,7 @@ export default function ThreadCard({
             )}
           >
             {thread.author.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element -- External avatar URLs from various sources
               <img
                 src={thread.author.avatar}
                 alt={thread.author.username}
@@ -133,18 +135,22 @@ export default function ThreadCard({
 
   // Default variant
   return (
-    <Link
-      href={`/${thread.categoryId}/${thread.slug}`}
-      className="flex items-center gap-4 p-4 bg-dark-800 rounded-lg border border-dark-700 hover:border-dark-600 transition-all group"
-    >
+    <div className="flex items-center gap-4 p-4 bg-dark-800 rounded-lg border border-dark-700 hover:border-dark-600 transition-all group relative">
+      <Link
+        href={`/${thread.categoryId}/${thread.slug}`}
+        className="absolute inset-0 z-0"
+        aria-label={`View thread: ${thread.title}`}
+      />
+
       {/* Author Avatar */}
       <div
         className={cn(
-          'w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold',
+          'w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold relative z-10',
           thread.author.avatar ? '' : generateAvatarColor(thread.author.username)
         )}
       >
         {thread.author.avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element -- External avatar URLs from various sources
           <img
             src={thread.author.avatar}
             alt={thread.author.username}
@@ -156,7 +162,7 @@ export default function ThreadCard({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 relative z-10 pointer-events-none">
         <div className="flex items-center gap-2 mb-1">
           {/* Status Icons */}
           {thread.isPinned && (
@@ -196,7 +202,7 @@ export default function ThreadCard({
       </div>
 
       {/* Stats */}
-      <div className="hidden sm:flex items-center gap-6 shrink-0 text-center">
+      <div className="hidden sm:flex items-center gap-6 shrink-0 text-center relative z-10 pointer-events-none">
         <div>
           <div className="text-sm font-medium text-white">
             {formatNumber(thread.postCount)}
@@ -211,9 +217,14 @@ export default function ThreadCard({
         </div>
       </div>
 
+      {/* Bookmark Button */}
+      <div className="relative z-10 pointer-events-auto">
+        <BookmarkButton threadId={thread.id} variant="icon" showLabel={false} />
+      </div>
+
       {/* Last Reply */}
       {thread.lastReply && (
-        <div className="hidden md:block text-right shrink-0 min-w-[140px]">
+        <div className="hidden md:block text-right shrink-0 min-w-[140px] relative z-10 pointer-events-none">
           <div className="text-xs text-dark-400 truncate">
             {thread.lastReply.username}
           </div>
@@ -222,6 +233,6 @@ export default function ThreadCard({
           </div>
         </div>
       )}
-    </Link>
+    </div>
   );
 }

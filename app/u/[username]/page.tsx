@@ -120,7 +120,7 @@ function StatCard({ icon, value, label, color }: { icon: React.ReactNode; value:
 export default function UserProfilePage() {
   const params = useParams();
   const username = params.username as string;
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const { user: currentUser } = useAuth();
 
   const [profile, setProfile] = useState<ProfileWithBadges | null>(null);
   const [isLoading, setIsLoading] = useState(true);

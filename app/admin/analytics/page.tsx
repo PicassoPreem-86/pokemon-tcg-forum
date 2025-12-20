@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import {
   TrendingUp,
-  TrendingDown,
   Users,
   MessageSquare,
   Eye,
@@ -190,7 +189,7 @@ export default function AdminAnalytics() {
             </div>
           </div>
           <div className="admin-chart traffic-chart">
-            {trafficData.map((data, index) => (
+            {trafficData.map((data) => (
               <div key={data.day} className="chart-bar-group">
                 <div className="chart-bars">
                   <div

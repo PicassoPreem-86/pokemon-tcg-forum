@@ -6,13 +6,10 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import {
   Search,
-  Filter,
   X,
   MessageSquare,
   Eye,
-  Clock,
   User,
-  Tag,
   Flame,
   Pin,
   ChevronDown,
@@ -223,7 +220,7 @@ function SearchContent() {
           <div className="search-empty">
             <Search size={64} />
             <h2>No Results Found</h2>
-            <p>No matches found for "{query}". Try different keywords.</p>
+            <p>No matches found for &quot;{query}&quot;. Try different keywords.</p>
           </div>
         ) : (
           <>

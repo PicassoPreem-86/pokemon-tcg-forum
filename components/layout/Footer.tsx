@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Twitter, Youtube, MessageCircle } from 'lucide-react';
+import { Twitter, Youtube } from 'lucide-react';
 import { SITE_CONFIG, FOOTER_LINKS, SOCIAL_LINKS } from '@/lib/config';
 
 const SocialIcon = ({ name }: { name: string }) => {

@@ -15,21 +15,17 @@ import {
   Heart,
   Quote,
   Share2,
-  Flag,
   Reply,
   ChevronUp,
-  ChevronDown,
   Send,
   Bookmark,
   MoreHorizontal,
   Crown,
   Shield,
   Star,
-  Sparkles,
-  CheckCircle,
-  Award
+  Sparkles
 } from 'lucide-react';
-import { getThreadById, getAllThreadIds, Post, ThreadDetail } from '@/lib/mock-data/posts';
+import { getThreadById, Post } from '@/lib/mock-data/posts';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 import { formatNumber } from '@/lib/categories';
 
@@ -336,7 +332,7 @@ export default function ThreadPage() {
       <div className="content-container">
         <div className="thread-not-found">
           <h1>Thread Not Found</h1>
-          <p>The thread you're looking for doesn't exist or has been removed.</p>
+          <p>The thread you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Link href="/" className="btn btn-primary">
             <ArrowLeft size={16} />
             Back to Home

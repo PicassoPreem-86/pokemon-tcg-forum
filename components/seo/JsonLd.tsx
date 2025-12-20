@@ -192,6 +192,7 @@ export function CategoryJsonLd({
   slug,
   description,
   threadCount,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future schema enhancements
   postCount,
 }: CategoryJsonLdProps) {
   const schema = {

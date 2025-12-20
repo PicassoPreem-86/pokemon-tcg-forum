@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Mail,
   Lock,
@@ -17,8 +17,9 @@ import { useAuth } from '@/lib/hooks';
 import { signIn, signInWithGoogle } from '@/lib/actions/auth';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
 
-export default function LoginPage() {
-  const router = useRouter();
+function LoginForm() {
+  useRouter(); // Keep for potential navigation needs
+  const searchParams = useSearchParams();
   const { isAuthenticated, isHydrated } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -27,18 +28,32 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Get redirect URL from query params
+  const redirectTo = searchParams.get('redirect') || '/';
+  const authError = searchParams.get('error');
+
+  // Show error message from query params
+  useEffect(() => {
+    if (authError === 'unauthorized') {
+      setError('You need admin privileges to access that page');
+    } else if (authError === 'auth_required') {
+      setError('Please log in to continue');
+    }
+  }, [authError]);
+
   // Redirect if already authenticated (only after hydration)
   useEffect(() => {
     if (isHydrated && isAuthenticated) {
-      router.push('/');
+      window.location.href = redirectTo;
     }
-  }, [isHydrated, isAuthenticated, router]);
+  }, [isHydrated, isAuthenticated, redirectTo]);
 
   // Clear errors on input change
   useEffect(() => {
-    if (error) {
+    if (error && !authError) {
       setError('');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,11 +81,14 @@ export default function LoginPage() {
       } else {
         showSuccessToast('Welcome back!', 'You have successfully logged in');
         // Use hard navigation to ensure cookies are properly read
-        window.location.href = '/';
+        // Redirect to original page if specified, otherwise home
+        window.location.href = redirectTo;
       }
     } catch (err) {
-      setError('An unexpected error occurred');
-      showErrorToast('Login failed', 'An unexpected error occurred');
+      console.error('Login error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      showErrorToast('Login failed', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +104,7 @@ export default function LoginPage() {
         setIsLoading(false);
       }
       // If successful, the redirect will happen automatically
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
       setIsLoading(false);
     }
@@ -206,7 +224,7 @@ export default function LoginPage() {
         {/* Sign Up Link */}
         <div className="auth-footer">
           <p>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register">Create one now</Link>
           </p>
         </div>
@@ -217,5 +235,32 @@ export default function LoginPage() {
         <div className="pokeball-bg" />
       </div>
     </div>
+  );
+}
+
+function LoginLoading() {
+  return (
+    <div className="auth-page">
+      <div className="auth-container">
+        <div className="auth-logo">
+          <div className="h-16 w-48 bg-gray-200 rounded animate-pulse mx-auto mb-4" />
+          <div className="h-8 w-40 bg-gray-200 rounded animate-pulse mx-auto mb-2" />
+          <div className="h-4 w-56 bg-gray-200 rounded animate-pulse mx-auto" />
+        </div>
+        <div className="auth-form">
+          <div className="h-12 bg-gray-200 rounded animate-pulse mb-4" />
+          <div className="h-12 bg-gray-200 rounded animate-pulse mb-4" />
+          <div className="h-12 bg-gray-200 rounded animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginForm />
+    </Suspense>
   );
 }

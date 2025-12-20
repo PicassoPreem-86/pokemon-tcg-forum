@@ -69,7 +69,7 @@ export default function SettingsPage() {
         showSuccessToast('Profile Updated', 'Your changes have been saved');
         await refreshUser();
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'An unexpected error occurred' });
       showErrorToast('Error', 'An unexpected error occurred');
     } finally {

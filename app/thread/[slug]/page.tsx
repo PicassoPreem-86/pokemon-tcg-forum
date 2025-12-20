@@ -11,14 +11,12 @@ import {
   Clock,
   Pin,
   Flame,
-  Lock,
   Heart,
   Quote,
   Share2,
   Reply,
   ChevronUp,
   Send,
-  Bookmark,
   MoreHorizontal,
   Crown,
   Shield,
@@ -32,7 +30,7 @@ import {
   X,
   GripVertical
 } from 'lucide-react';
-import { getThreadBySlug, isUserThread, useThreadStore, UserThread } from '@/lib/thread-store';
+import { getThreadBySlug, isUserThread, useThreadStore } from '@/lib/thread-store';
 import { useReplyStore, Reply as ReplyType, ReplyImage } from '@/lib/reply-store';
 import { useAuthStore, useAuthStateAfterHydration } from '@/lib/auth-store';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
@@ -41,6 +39,7 @@ import { formatNumber } from '@/lib/categories';
 import { insertFormatting } from '@/lib/content-renderer';
 import RichContent from '@/components/forum/RichContent';
 import NestedReplies from '@/components/forum/NestedReplies';
+import BookmarkButton from '@/components/forum/BookmarkButton';
 
 // Role badge colors and icons
 const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -141,18 +140,17 @@ interface PostCardProps {
   post: ReturnType<typeof generatePosts>[0];
   isFirst: boolean;
   onQuote?: (author: string, content: string) => void;
+  threadId?: string;
 }
 
-function PostCard({ post, isFirst, onQuote }: PostCardProps) {
+function PostCard({ post, isFirst, onQuote, threadId }: PostCardProps) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [isHydrated, setIsHydrated] = useState(false);
   const trainerRank = getTrainerRank(post.author.postCount);
 
   // Sync like count after hydration to avoid mismatch
   useEffect(() => {
     setLikeCount(post.likes);
-    setIsHydrated(true);
   }, [post.likes]);
   const roleInfo = roleConfig[post.author.role] || roleConfig.member;
 
@@ -295,9 +293,7 @@ function PostCard({ post, isFirst, onQuote }: PostCardProps) {
             <span>Share</span>
           </button>
 
-          <button className="post-action-btn">
-            <Bookmark size={16} />
-          </button>
+          {isFirst && threadId && <BookmarkButton threadId={threadId} showLabel={false} />}
 
           <button className="post-action-btn post-action-more">
             <MoreHorizontal size={16} />
@@ -398,7 +394,7 @@ function ReplyForm({
           width: dimensions.width,
           height: dimensions.height,
         });
-      } catch (error) {
+      } catch {
         showErrorToast('Upload failed', `Failed to process ${file.name}`);
       }
     }
@@ -958,7 +954,7 @@ function getCategoryInfo(categoryId: string) {
   return categories[categoryId] || { name: 'General', color: '#6B7280', slug: 'general' };
 }
 
-// Component to render a user reply from the store
+// Component to render a user reply from the store (reserved for future use)
 interface UserReplyCardProps {
   reply: ReplyType;
   replyNumber: number;
@@ -966,6 +962,7 @@ interface UserReplyCardProps {
   onQuote?: (author: string, content: string) => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved component for future use
 function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserReplyCardProps) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -1284,10 +1281,6 @@ function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserRepl
             <span>Share</span>
           </button>
 
-          <button className="post-action-btn">
-            <Bookmark size={16} />
-          </button>
-
           {/* Edit/Delete buttons - only for owner or moderators */}
           {(isOwner || canModerate) && !isEditing && (
             <>
@@ -1327,7 +1320,7 @@ export default function ThreadBySlugPage() {
   const slug = params.slug as string;
   const { editThread, deleteThread, getThreadBySlug: getThread } = useThreadStore();
   const [thread, setThread] = useState(() => getThreadBySlug(slug));
-  const { getRepliesByThread, getReplyCount } = useReplyStore();
+  const { getRepliesByThread } = useReplyStore();
   const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuthStore();
 
@@ -1701,7 +1694,7 @@ export default function ThreadBySlugPage() {
       {/* Posts - Original Post and Mock Replies */}
       <div className="posts-container">
         {posts.map((post, index) => (
-          <PostCard key={post.id} post={post} isFirst={index === 0} onQuote={handleQuote} />
+          <PostCard key={post.id} post={post} isFirst={index === 0} onQuote={handleQuote} threadId={thread.id} />
         ))}
       </div>
 

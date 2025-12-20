@@ -152,12 +152,6 @@ function groupLines(lines: ParsedLine[]): (ParsedLine | ParsedLine[])[] {
   return grouped;
 }
 
-// Group consecutive quotes
-function groupQuotes(lines: ParsedLine[]): ParsedLine[] {
-  // For now, just return as-is - quotes render individually
-  // Could enhance to merge consecutive quotes into one block
-  return lines;
-}
 
 export default function RichContent({ content, className = '' }: RichContentProps) {
   const lines = parseContent(content);

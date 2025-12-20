@@ -7,16 +7,10 @@ import Image from 'next/image';
 import {
   Heart,
   Quote,
-  Share2,
   Reply,
-  Bookmark,
-  MoreHorizontal,
-  Clock,
-  Sparkles,
   Edit2,
   Trash2,
   Loader2,
-  CheckCircle,
   ChevronDown,
   ChevronRight,
   Crown,
@@ -31,7 +25,6 @@ import { Reply as ReplyType, useReplyStore, ReplyImage } from '@/lib/reply-store
 import { useAuthStore } from '@/lib/auth-store';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
 import { getTrainerRank } from '@/lib/trainer-ranks';
-import { formatNumber } from '@/lib/categories';
 import RichContent from './RichContent';
 
 // Role badge colors and icons
@@ -118,6 +111,7 @@ function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxProps) {
 
         {/* Main image */}
         <div className="lightbox-image-wrapper">
+          {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic user-uploaded images with base64 URLs */}
           <img
             src={currentImage.url}
             alt={currentImage.alt || 'Enlarged image'}
@@ -146,6 +140,7 @@ function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxProps) {
                 className={`lightbox-thumb ${index === currentIndex ? 'active' : ''}`}
                 onClick={() => setCurrentIndex(index)}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic thumbnails with base64 URLs */}
                 <img src={img.url} alt={img.alt || `Thumbnail ${index + 1}`} />
               </button>
             ))}
@@ -160,17 +155,6 @@ function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxProps) {
   return createPortal(lightboxContent, document.body);
 }
 
-// Format date for display
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
 
 // Compact format for nested replies
 function formatTimeAgo(dateString: string): string {

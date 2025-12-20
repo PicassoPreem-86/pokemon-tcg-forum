@@ -45,6 +45,7 @@ export default function RegisterPage() {
     if (error) {
       setError('');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally exclude 'error' to avoid infinite loop
   }, [username, email, password, confirmPassword]);
 
   // Password strength
@@ -112,7 +113,7 @@ export default function RegisterPage() {
         showSuccessToast('Welcome to TCG Gossip!', 'Your account has been created successfully. Please check your email to verify your account.');
         router.push('/login');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
       showErrorToast('Registration failed', 'An unexpected error occurred');
     } finally {
@@ -130,7 +131,7 @@ export default function RegisterPage() {
         setIsLoading(false);
       }
       // If successful, the redirect will happen automatically
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
       setIsLoading(false);
     }

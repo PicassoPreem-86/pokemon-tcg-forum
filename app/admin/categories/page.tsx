@@ -7,7 +7,6 @@ import {
   Trash2,
   GripVertical,
   Eye,
-  EyeOff,
   ChevronDown,
   ChevronRight,
   MessageSquare,
@@ -90,7 +89,7 @@ export default function AdminCategories() {
             {/* Subcategories */}
             {expandedCategories.includes(category.id) && category.subcategories && (
               <div className="admin-subcategories">
-                {category.subcategories.map((sub, subIndex) => (
+                {category.subcategories.map((sub) => (
                   <div key={sub.id} className="admin-subcategory-item">
                     <div className="admin-subcategory-drag">
                       <GripVertical className="w-4 h-4" />

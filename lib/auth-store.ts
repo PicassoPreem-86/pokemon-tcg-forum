@@ -114,8 +114,9 @@ export const useAuthStore = create<AuthState>()(
           return false;
         }
 
-        // Remove password from user object
-        const { password: _, ...userWithoutPassword } = foundUser;
+        // Remove password from user object before storing
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Destructuring to exclude password
+        const { password: excludedPassword, ...userWithoutPassword } = foundUser;
 
         set({
           user: { ...userWithoutPassword, isOnline: true },
@@ -186,8 +187,9 @@ export const useAuthStore = create<AuthState>()(
         users.set(data.email.toLowerCase(), newUser);
         saveUsers(users);
 
-        // Remove password from user object
-        const { password: _, ...userWithoutPassword } = newUser;
+        // Remove password from user object before storing in state
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Destructuring to exclude password
+        const { password: excludedPassword, ...userWithoutPassword } = newUser;
 
         set({
           user: userWithoutPassword,
@@ -255,7 +257,7 @@ function getAuthFromLocalStorage(): { user: AuthUser | null; isAuthenticated: bo
         };
       }
     }
-  } catch (e) {
+  } catch {
     // Ignore parse errors
   }
 
