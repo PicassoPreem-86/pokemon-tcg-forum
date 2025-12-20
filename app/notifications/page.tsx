@@ -15,21 +15,13 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
-import { getSupabaseClient } from '@/lib/supabase/client';
-
-interface Notification {
-  id: string;
-  type: 'reply' | 'mention' | 'like' | 'follow';
-  message: string;
-  link: string;
-  is_read: boolean;
-  created_at: string;
-  actor?: {
-    username: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  };
-}
+import {
+  getUserNotifications,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  type Notification,
+} from '@/lib/actions';
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
@@ -82,25 +74,8 @@ export default function NotificationsPage() {
       if (!user) return;
 
       try {
-        const supabase = getSupabaseClient();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase as any)
-          .from('notifications')
-          .select(`
-            *,
-            actor:profiles!notifications_actor_id_fkey(username, display_name, avatar_url)
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50) as { data: Notification[] | null; error: Error | null };
-
-        if (error) {
-          console.error('Error fetching notifications:', error);
-          // If notifications table doesn't exist yet, show empty state
-          setNotifications([]);
-        } else {
-          setNotifications(data || []);
-        }
+        const data = await getUserNotifications(50);
+        setNotifications(data);
       } catch (error) {
         console.error('Error fetching notifications:', error);
         setNotifications([]);
@@ -114,33 +89,20 @@ export default function NotificationsPage() {
     }
   }, [isHydrated, user]);
 
-  const markAllAsRead = async () => {
+  const handleMarkAllAsRead = async () => {
     if (!user) return;
 
     try {
-      const supabase = getSupabaseClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-
+      await markAllAsRead();
       setNotifications(notifications.map(n => ({ ...n, is_read: true })));
     } catch (error) {
       console.error('Error marking notifications as read:', error);
     }
   };
 
-  const markAsRead = async (notificationId: string) => {
+  const handleMarkAsRead = async (notificationId: string) => {
     try {
-      const supabase = getSupabaseClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
-
+      await markAsRead(notificationId);
       setNotifications(notifications.map(n =>
         n.id === notificationId ? { ...n, is_read: true } : n
       ));
@@ -149,15 +111,9 @@ export default function NotificationsPage() {
     }
   };
 
-  const deleteNotification = async (notificationId: string) => {
+  const handleDeleteNotification = async (notificationId: string) => {
     try {
-      const supabase = getSupabaseClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-
+      await deleteNotification(notificationId);
       setNotifications(notifications.filter(n => n.id !== notificationId));
     } catch (error) {
       console.error('Error deleting notification:', error);
@@ -222,7 +178,7 @@ export default function NotificationsPage() {
             </button>
           </div>
           {unreadCount > 0 && (
-            <button onClick={markAllAsRead} className="btn btn-ghost btn-sm">
+            <button onClick={handleMarkAllAsRead} className="btn btn-ghost btn-sm">
               <CheckCheck size={16} />
               Mark all as read
             </button>
@@ -264,7 +220,7 @@ export default function NotificationsPage() {
                   <Link
                     href={notification.link || '#'}
                     className="notification-message"
-                    onClick={() => !notification.is_read && markAsRead(notification.id)}
+                    onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}
                   >
                     {notification.message}
                   </Link>
@@ -275,7 +231,7 @@ export default function NotificationsPage() {
                 <div className="notification-actions">
                   {!notification.is_read && (
                     <button
-                      onClick={() => markAsRead(notification.id)}
+                      onClick={() => handleMarkAsRead(notification.id)}
                       className="btn btn-ghost btn-xs"
                       title="Mark as read"
                     >
@@ -283,7 +239,7 @@ export default function NotificationsPage() {
                     </button>
                   )}
                   <button
-                    onClick={() => deleteNotification(notification.id)}
+                    onClick={() => handleDeleteNotification(notification.id)}
                     className="btn btn-ghost btn-xs text-red-500"
                     title="Delete"
                   >

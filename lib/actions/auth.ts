@@ -4,145 +4,155 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-
-export interface AuthResult {
-  success: boolean;
-  error?: string;
-  redirectTo?: string;
-}
-
-interface SignUpData {
-  email: string;
-  password: string;
-  username: string;
-  displayName?: string;
-}
-
-interface SignInData {
-  email: string;
-  password: string;
-}
+import { checkRateLimit, formatRetryTime } from '@/lib/rate-limit';
+import type { AuthResult, SignUpData, SignInData, UpdateProfileData } from './types';
 
 export async function signUp(data: SignUpData): Promise<AuthResult> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { email, password, username, displayName } = data;
+    const { email, password, username, displayName } = data;
 
-  // Validate inputs
-  if (!email || !password || !username) {
-    return { success: false, error: 'Email, password, and username are required' };
-  }
+    // Validate inputs
+    if (!email || !password || !username) {
+      return { success: false, error: 'Email, password, and username are required' };
+    }
 
-  if (password.length < 6) {
-    return { success: false, error: 'Password must be at least 6 characters' };
-  }
+    if (password.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters' };
+    }
 
-  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
-    return {
-      success: false,
-      error: 'Username must be 3-20 characters and contain only letters, numbers, and underscores',
-    };
-  }
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      return {
+        success: false,
+        error: 'Username must be 3-20 characters and contain only letters, numbers, and underscores',
+      };
+    }
 
-  // Check if username is taken
-  const { data: existingUser } = await supabase
-    .from('profiles')
-    .select('username')
-    .eq('username', username)
-    .single();
+    // Check if username is taken
+    const { data: existingUser } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', username)
+      .single();
 
-  if (existingUser) {
-    return { success: false, error: 'This username is already taken' };
-  }
+    if (existingUser) {
+      return { success: false, error: 'This username is already taken' };
+    }
 
-  // Sign up the user
-  const { data: authData, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        username,
-        display_name: displayName || username,
+    // Sign up the user
+    const { data: authData, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username,
+          display_name: displayName || username,
+        },
       },
-    },
-  });
+    });
 
-  if (error) {
-    console.error('Signup error:', error);
-    return { success: false, error: error.message };
+    if (error) {
+      console.error('Signup error:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (!authData.user) {
+      return { success: false, error: 'Failed to create account' };
+    }
+
+    revalidatePath('/', 'layout');
+    return { success: true, redirectTo: '/' };
+  } catch (error) {
+    console.error('Sign up error:', error);
+    return { success: false, error: 'An error occurred during sign up. Please try again.' };
   }
-
-  if (!authData.user) {
-    return { success: false, error: 'Failed to create account' };
-  }
-
-  revalidatePath('/', 'layout');
-  return { success: true, redirectTo: '/' };
 }
 
 export async function signIn(data: SignInData): Promise<AuthResult> {
-  const supabase = await createClient();
+  // Debug: Log that we reached the server action
+  console.log('signIn called with email:', data.email);
 
-  const { email, password } = data;
+  try {
+    const { email, password } = data;
 
-  if (!email || !password) {
-    return { success: false, error: 'Email and password are required' };
-  }
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error('Login error:', error);
-    if (error.message.includes('Invalid login credentials')) {
-      return { success: false, error: 'Invalid email or password' };
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required' };
     }
-    return { success: false, error: error.message };
-  }
 
-  revalidatePath('/', 'layout');
-  return { success: true, redirectTo: '/' };
+    // Test: Try to create the Supabase client
+    console.log('Creating Supabase client...');
+    const supabase = await createClient();
+    console.log('Supabase client created successfully');
+
+    console.log('Attempting sign in...');
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    console.log('Sign in attempt completed, error:', error?.message || 'none');
+
+    if (error) {
+      console.error('Login error:', error);
+      if (error.message.includes('Invalid login credentials')) {
+        return { success: false, error: 'Invalid email or password' };
+      }
+      return { success: false, error: error.message };
+    }
+
+    console.log('Sign in successful, revalidating path...');
+    revalidatePath('/', 'layout');
+    return { success: true, redirectTo: '/' };
+  } catch (error) {
+    console.error('Sign in error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: `Sign in failed: ${errorMessage}` };
+  }
 }
 
 export async function signInWithGoogle(): Promise<AuthResult> {
-  const supabase = await createClient();
-  const headersList = await headers();
-  const origin = headersList.get('origin') || 'http://localhost:3000';
+  try {
+    const supabase = await createClient();
+    const headersList = await headers();
+    const origin = headersList.get('origin') || 'http://localhost:3000';
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: `${origin}/auth/callback`,
-    },
-  });
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${origin}/auth/callback`,
+      },
+    });
 
-  if (error) {
-    console.error('Google login error:', error);
-    return { success: false, error: error.message };
+    if (error) {
+      console.error('Google login error:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data.url) {
+      redirect(data.url);
+    }
+
+    return { success: true };
+  } catch (error) {
+    // Re-throw redirect errors (they're not actual errors)
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+    console.error('Google sign in error:', error);
+    return { success: false, error: 'An error occurred during Google sign in. Please try again.' };
   }
-
-  if (data.url) {
-    redirect(data.url);
-  }
-
-  return { success: true };
 }
 
-export async function signOut(): Promise<void> {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  revalidatePath('/', 'layout');
-  redirect('/');
-}
-
-interface UpdateProfileData {
-  displayName?: string;
-  bio?: string;
-  location?: string;
-  signature?: string;
-  avatarUrl?: string;
+export async function signOut(): Promise<AuthResult> {
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+    revalidatePath('/', 'layout');
+    return { success: true, redirectTo: '/' };
+  } catch (error) {
+    console.error('Sign out error:', error);
+    return { success: false, error: 'Failed to sign out' };
+  }
 }
 
 export async function updateProfile(data: UpdateProfileData): Promise<AuthResult> {
@@ -152,6 +162,16 @@ export async function updateProfile(data: UpdateProfileData): Promise<AuthResult
 
   if (!user) {
     return { success: false, error: 'Not authenticated' };
+  }
+
+  // SECURITY: Check rate limit for profile updates
+  const rateLimitResult = await checkRateLimit(user.id, 'profile_update');
+  if (!rateLimitResult.allowed) {
+    const retryTime = await formatRetryTime(rateLimitResult.retryAfter || 0);
+    return {
+      success: false,
+      error: `You're updating your profile too frequently. Please wait ${retryTime} before trying again.`,
+    };
   }
 
   // Build update object with only defined values

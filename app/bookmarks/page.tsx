@@ -15,18 +15,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
-import { getSupabaseClient } from '@/lib/supabase/client';
-import type { Thread, Category, Profile } from '@/lib/supabase/database.types';
-
-interface BookmarkedThread {
-  id: string;
-  thread_id: string;
-  created_at: string;
-  thread: Thread & {
-    category: Category;
-    author: Profile;
-  };
-}
+import { getUserBookmarks, removeBookmark, type BookmarkedThreadData } from '@/lib/actions/bookmarks';
+import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
@@ -47,8 +37,9 @@ function formatTimeAgo(dateString: string): string {
 export default function BookmarksPage() {
   const router = useRouter();
   const { user, isAuthenticated, isHydrated } = useAuth();
-  const [bookmarks, setBookmarks] = useState<BookmarkedThread[]>([]);
+  const [bookmarks, setBookmarks] = useState<BookmarkedThreadData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [removingBookmarkId, setRemovingBookmarkId] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -63,30 +54,11 @@ export default function BookmarksPage() {
       if (!user) return;
 
       try {
-        const supabase = getSupabaseClient();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase as any)
-          .from('bookmarks')
-          .select(`
-            *,
-            thread:threads(
-              *,
-              category:categories(*),
-              author:profiles(*)
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false }) as { data: BookmarkedThread[] | null; error: Error | null };
-
-        if (error) {
-          console.error('Error fetching bookmarks:', error);
-          // If bookmarks table doesn't exist yet, just show empty state
-          setBookmarks([]);
-        } else {
-          setBookmarks(data || []);
-        }
+        const data = await getUserBookmarks();
+        setBookmarks(data);
       } catch (error) {
         console.error('Error fetching bookmarks:', error);
+        showErrorToast('Error loading bookmarks', 'Please try refreshing the page');
         setBookmarks([]);
       } finally {
         setIsLoading(false);
@@ -98,18 +70,23 @@ export default function BookmarksPage() {
     }
   }, [isHydrated, user]);
 
-  const removeBookmark = async (bookmarkId: string) => {
-    try {
-      const supabase = getSupabaseClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from('bookmarks')
-        .delete()
-        .eq('id', bookmarkId);
+  const handleRemoveBookmark = async (threadId: string, bookmarkId: string) => {
+    setRemovingBookmarkId(bookmarkId);
 
-      setBookmarks(bookmarks.filter(b => b.id !== bookmarkId));
+    try {
+      const result = await removeBookmark(threadId);
+
+      if (result.success) {
+        setBookmarks(bookmarks.filter(b => b.id !== bookmarkId));
+        showSuccessToast('Bookmark removed', 'Thread removed from your bookmarks');
+      } else {
+        showErrorToast('Failed to remove', result.error || 'Could not remove bookmark');
+      }
     } catch (error) {
       console.error('Error removing bookmark:', error);
+      showErrorToast('Error', 'An unexpected error occurred');
+    } finally {
+      setRemovingBookmarkId(null);
     }
   };
 
@@ -207,11 +184,16 @@ export default function BookmarksPage() {
                 </div>
                 <div className="my-thread-actions">
                   <button
-                    onClick={() => removeBookmark(bookmark.id)}
+                    onClick={() => handleRemoveBookmark(bookmark.thread_id, bookmark.id)}
                     className="btn btn-ghost btn-sm text-red-500"
                     title="Remove bookmark"
+                    disabled={removingBookmarkId === bookmark.id}
                   >
-                    <Trash2 size={16} />
+                    {removingBookmarkId === bookmark.id ? (
+                      <Loader2 size={16} className="spin" />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
                   </button>
                 </div>
               </div>

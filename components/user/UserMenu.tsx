@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/lib/hooks';
 import { signOut } from '@/lib/actions/auth';
 import { getTrainerRank } from '@/lib/trainer-ranks';
+import { getUnreadCount } from '@/lib/actions';
 
 // Role badge configuration
 const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -32,6 +33,7 @@ const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: 
 export default function UserMenu() {
   const { user, isAuthenticated, isHydrated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -58,11 +60,38 @@ export default function UserMenu() {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
+  // Fetch unread notification count
+  useEffect(() => {
+    async function fetchUnreadCount() {
+      if (!isAuthenticated || !user) return;
+
+      try {
+        const count = await getUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    }
+
+    if (isHydrated && isAuthenticated && user) {
+      fetchUnreadCount();
+
+      // Poll for updates every 30 seconds
+      const interval = setInterval(fetchUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isHydrated, isAuthenticated, user]);
+
   const handleLogout = async () => {
     setIsOpen(false);
-    await signOut();
+    const result = await signOut();
     // Force a full page reload to clear all client state
-    window.location.href = '/';
+    if (result.success) {
+      window.location.href = result.redirectTo || '/';
+    } else {
+      console.error('Logout failed:', result.error);
+      window.location.href = '/';
+    }
   };
 
   // Debug logging
@@ -213,8 +242,9 @@ export default function UserMenu() {
             >
               <Bell size={18} />
               <span>Notifications</span>
-              {/* Notification badge example */}
-              <span className="user-menu-notification-badge">3</span>
+              {unreadCount > 0 && (
+                <span className="user-menu-notification-badge">{unreadCount}</span>
+              )}
             </Link>
           </div>
 

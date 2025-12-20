@@ -3,12 +3,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { Thread, Profile } from '@/lib/supabase/database.types';
+import { sanitizeHtml, createSafeExcerpt } from '@/lib/sanitize';
+import { createNotification } from './notifications';
+import { extractAndValidateMentions } from '@/lib/mentions';
+import { checkRateLimit, formatRetryTime } from '@/lib/rate-limit';
+// Import types from separate file (Next.js 15/16 'use server' files can only export async functions)
+import type { ThreadResult } from './action-types';
 
-export interface ThreadResult {
-  success: boolean;
-  error?: string;
-  threadSlug?: string;
-}
+// Re-export types for consumers
+export type { ThreadResult } from './action-types';
 
 // Generate URL-friendly slug from title
 function generateSlug(title: string): string {
@@ -41,6 +44,16 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
     return { success: false, error: 'You must be logged in to create a thread' };
   }
 
+  // SECURITY: Check rate limit for thread creation
+  const rateLimitResult = await checkRateLimit(user.id, 'thread_create');
+  if (!rateLimitResult.allowed) {
+    const retryTime = await formatRetryTime(rateLimitResult.retryAfter || 0);
+    return {
+      success: false,
+      error: `You're creating threads too fast. Please wait ${retryTime} before trying again.`,
+    };
+  }
+
   const { title, content, categoryId, tags } = data;
 
   // Validate inputs
@@ -57,7 +70,10 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
   }
 
   const slug = generateSlug(title);
-  const excerpt = content.trim().substring(0, 200) + (content.length > 200 ? '...' : '');
+
+  // SECURITY: Sanitize HTML content to prevent XSS attacks
+  const sanitizedContent = sanitizeHtml(content.trim());
+  const excerpt = createSafeExcerpt(sanitizedContent, 200);
 
   // Create the thread
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,7 +82,7 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
     .insert({
       slug,
       title: title.trim(),
-      content: content.trim(),
+      content: sanitizedContent,
       excerpt,
       category_id: categoryId,
       author_id: user.id,
@@ -88,6 +104,47 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase as any).from('thread_tags').insert(tagInserts);
+  }
+
+  // Process @mentions in the thread content
+  try {
+    // Extract and validate mentioned users
+    const mentionedUsers = await extractAndValidateMentions(sanitizedContent);
+
+    if (mentionedUsers.length > 0 && thread) {
+      // Get actor username for mention notifications
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: actorProfile } = await (supabase as any)
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single() as { data: { username: string } | null };
+
+      if (actorProfile) {
+        // Create mention notification for each mentioned user
+        for (const mentionedUser of mentionedUsers) {
+          // Don't notify if user mentions themselves
+          if (mentionedUser.id === user.id) {
+            continue;
+          }
+
+          const mentionMessage = `${actorProfile.username} mentioned you in their thread "${thread.title}"`;
+          const mentionLink = `/thread/${thread.slug}`;
+
+          // Don't await - let notification creation happen in background
+          createNotification(
+            mentionedUser.id,
+            user.id,
+            'mention',
+            mentionMessage,
+            mentionLink
+          ).catch(err => console.error('[createThread] Mention notification error:', err));
+        }
+      }
+    }
+  } catch (mentionError) {
+    // Log but don't fail the thread creation
+    console.error('[createThread] Failed to process mentions:', mentionError);
   }
 
   revalidatePath('/');
@@ -153,7 +210,9 @@ export async function updateThread(data: UpdateThreadData): Promise<ThreadResult
     return { success: false, error: 'Content must be at least 20 characters' };
   }
 
-  const excerpt = content.trim().substring(0, 200) + (content.length > 200 ? '...' : '');
+  // SECURITY: Sanitize HTML content to prevent XSS attacks
+  const sanitizedContent = sanitizeHtml(content.trim());
+  const excerpt = createSafeExcerpt(sanitizedContent, 200);
 
   // Update the thread
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,7 +220,7 @@ export async function updateThread(data: UpdateThreadData): Promise<ThreadResult
     .from('threads')
     .update({
       title: title.trim(),
-      content: content.trim(),
+      content: sanitizedContent,
       excerpt,
     })
     .eq('id', threadId);
@@ -256,6 +315,8 @@ export async function toggleThreadLike(threadId: string): Promise<{ liked: boole
     .eq('user_id', user.id)
     .single() as { data: { id: string } | null };
 
+  const isNowLiked = !existingLike;
+
   if (existingLike) {
     // Unlike
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -263,13 +324,58 @@ export async function toggleThreadLike(threadId: string): Promise<{ liked: boole
       .from('thread_likes')
       .delete()
       .eq('id', existingLike.id);
-    return { liked: false };
   } else {
     // Like
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase as any)
       .from('thread_likes')
       .insert({ thread_id: threadId, user_id: user.id });
-    return { liked: true };
+
+    // Create notification for thread author (if not liking own thread)
+    try {
+      // Get thread details with author
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: threadDetails } = await (supabase as any)
+        .from('threads')
+        .select('id, slug, title, author_id')
+        .eq('id', threadId)
+        .single() as {
+          data: {
+            id: string;
+            slug: string;
+            title: string;
+            author_id: string;
+          } | null
+        };
+
+      if (threadDetails && threadDetails.author_id !== user.id) {
+        // Get actor username for notification message
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: actorProfile } = await (supabase as any)
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single() as { data: { username: string } | null };
+
+        if (actorProfile) {
+          const notificationMessage = `${actorProfile.username} liked your thread "${threadDetails.title}"`;
+          const notificationLink = `/thread/${threadDetails.slug}`;
+
+          // Don't await - let notification creation happen in background
+          createNotification(
+            threadDetails.author_id,
+            user.id,
+            'like',
+            notificationMessage,
+            notificationLink
+          ).catch(err => console.error('[toggleThreadLike] Notification error:', err));
+        }
+      }
+    } catch (notifError) {
+      // Log but don't fail the like action
+      console.error('[toggleThreadLike] Failed to create notification:', notifError);
+    }
   }
+
+  return { liked: isNowLiked };
 }

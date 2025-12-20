@@ -27,6 +27,7 @@ import { CATEGORIES } from '@/lib/categories';
 import { useAuthStore } from '@/lib/auth-store';
 import { useThreadStore } from '@/lib/thread-store';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 export default function NewThreadPage() {
   const router = useRouter();
@@ -368,13 +369,15 @@ export default function NewThreadPage() {
                     if (line.startsWith('- ')) {
                       return <li key={i}>{line.slice(2)}</li>;
                     }
-                    // Basic markdown parsing
-                    let parsed = line
+                    // Basic markdown parsing with XSS protection
+                    const parsed = line
                       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                       .replace(/\*(.+?)\*/g, '<em>$1</em>')
                       .replace(/`(.+?)`/g, '<code>$1</code>')
                       .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
-                    return <p key={i} dangerouslySetInnerHTML={{ __html: parsed }} />;
+                    // SECURITY: Sanitize HTML to prevent XSS attacks
+                    const sanitized = sanitizeHtml(parsed);
+                    return <p key={i} dangerouslySetInnerHTML={{ __html: sanitized }} />;
                   })}
                 </div>
               ) : (

@@ -84,8 +84,8 @@ export default function LoadingDemo() {
           <tbody className="text-text-secondary">
             <tr className="border-b border-border">
               <td className="py-2 px-4 font-mono">size</td>
-              <td className="py-2 px-4 font-mono">'sm' | 'md' | 'lg' | 'xl'</td>
-              <td className="py-2 px-4 font-mono">'md'</td>
+              <td className="py-2 px-4 font-mono">{`'sm' | 'md' | 'lg' | 'xl'`}</td>
+              <td className="py-2 px-4 font-mono">{`'md'`}</td>
               <td className="py-2 px-4">Controls the size of the Pokeball spinner</td>
             </tr>
             <tr className="border-b border-border">
@@ -97,7 +97,7 @@ export default function LoadingDemo() {
             <tr>
               <td className="py-2 px-4 font-mono">className</td>
               <td className="py-2 px-4 font-mono">string</td>
-              <td className="py-2 px-4 font-mono">''</td>
+              <td className="py-2 px-4 font-mono">{`''`}</td>
               <td className="py-2 px-4">Additional CSS classes for custom styling</td>
             </tr>
           </tbody>

@@ -22,7 +22,7 @@ const MobileMenu = dynamic(() => import('@/components/layout/MobileMenu'), {
 });
 import ThreadCard from '@/components/forum/ThreadCard';
 import { getCategoryBySlug } from '@/lib/categories';
-import { getThreadsByCategory, getPinnedThreads } from '@/lib/mock-data/threads';
+import { getThreadsByCategory } from '@/lib/mock-data/threads';
 import { cn } from '@/lib/utils';
 
 const category = getCategoryBySlug('buy-trade') || {

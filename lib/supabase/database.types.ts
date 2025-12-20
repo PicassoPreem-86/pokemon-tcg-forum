@@ -23,6 +23,14 @@ export interface Database {
           signature: string | null
           post_count: number
           reputation: number
+          is_banned: boolean
+          banned_at: string | null
+          banned_reason: string | null
+          banned_until: string | null
+          is_suspended: boolean
+          suspended_at: string | null
+          suspended_reason: string | null
+          suspended_until: string | null
           created_at: string
           updated_at: string
         }
@@ -37,6 +45,14 @@ export interface Database {
           signature?: string | null
           post_count?: number
           reputation?: number
+          is_banned?: boolean
+          banned_at?: string | null
+          banned_reason?: string | null
+          banned_until?: string | null
+          is_suspended?: boolean
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          suspended_until?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -51,6 +67,14 @@ export interface Database {
           signature?: string | null
           post_count?: number
           reputation?: number
+          is_banned?: boolean
+          banned_at?: string | null
+          banned_reason?: string | null
+          banned_until?: string | null
+          is_suspended?: boolean
+          suspended_at?: string | null
+          suspended_reason?: string | null
+          suspended_until?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -107,6 +131,9 @@ export interface Database {
           is_pinned: boolean
           is_locked: boolean
           is_hot: boolean
+          deleted_by: string | null
+          deleted_at: string | null
+          deleted_reason: string | null
           created_at: string
           updated_at: string
         }
@@ -123,6 +150,9 @@ export interface Database {
           is_pinned?: boolean
           is_locked?: boolean
           is_hot?: boolean
+          deleted_by?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -139,6 +169,9 @@ export interface Database {
           is_pinned?: boolean
           is_locked?: boolean
           is_hot?: boolean
+          deleted_by?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -169,6 +202,9 @@ export interface Database {
           content: string
           like_count: number
           is_edited: boolean
+          deleted_by: string | null
+          deleted_at: string | null
+          deleted_reason: string | null
           created_at: string
           updated_at: string
         }
@@ -180,6 +216,9 @@ export interface Database {
           content: string
           like_count?: number
           is_edited?: boolean
+          deleted_by?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -191,6 +230,9 @@ export interface Database {
           content?: string
           like_count?: number
           is_edited?: boolean
+          deleted_by?: string | null
+          deleted_at?: string | null
+          deleted_reason?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -342,6 +384,73 @@ export interface Database {
           created_at?: string
         }
       }
+      moderation_logs: {
+        Row: {
+          id: string
+          moderator_id: string
+          action: string
+          target_type: 'user' | 'thread' | 'reply'
+          target_id: string
+          reason: string | null
+          details: Json | null
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          moderator_id: string
+          action: string
+          target_type: 'user' | 'thread' | 'reply'
+          target_id: string
+          reason?: string | null
+          details?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          moderator_id?: string
+          action?: string
+          target_type?: 'user' | 'thread' | 'reply'
+          target_id?: string
+          reason?: string | null
+          details?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+      }
+      rate_limits: {
+        Row: {
+          id: string
+          user_id: string
+          action: string
+          count: number
+          window_start: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          action: string
+          count?: number
+          window_start?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          action?: string
+          count?: number
+          window_start?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -369,6 +478,7 @@ export type Thread = Database['public']['Tables']['threads']['Row']
 export type Reply = Database['public']['Tables']['replies']['Row']
 export type ReplyImage = Database['public']['Tables']['reply_images']['Row']
 export type UserBadge = Database['public']['Tables']['user_badges']['Row']
+export type ModerationLog = Database['public']['Tables']['moderation_logs']['Row']
 
 // Thread with author profile
 export type ThreadWithAuthor = Thread & {
@@ -399,3 +509,6 @@ export type BookmarkWithThread = Bookmark & {
 export type NotificationWithActor = Notification & {
   actor: Profile | null
 }
+
+// Rate Limit type
+export type RateLimit = Database['public']['Tables']['rate_limits']['Row']

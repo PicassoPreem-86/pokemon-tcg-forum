@@ -59,7 +59,7 @@ export default function CategoryThreadList({
     const combined = [...categoryUserThreads, ...mockThreads];
 
     // Sort based on sortBy
-    let sorted = [...combined];
+    const sorted = [...combined];
     switch (sortBy) {
       case 'latest':
         sorted.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
@@ -84,7 +84,6 @@ export default function CategoryThreadList({
   const regularThreads = allThreads.filter(t => !t.isPinned);
 
   // Pagination
-  const totalPages = Math.ceil(regularThreads.length / threadsPerPage);
   const startIndex = (currentPage - 1) * threadsPerPage;
   const endIndex = startIndex + threadsPerPage;
   const paginatedThreads = regularThreads.slice(startIndex, endIndex);

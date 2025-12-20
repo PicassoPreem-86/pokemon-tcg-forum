@@ -8,8 +8,6 @@ import {
   Shield,
   Bell,
   Palette,
-  Mail,
-  Lock,
   Eye,
   EyeOff,
   Save,

@@ -3,12 +3,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { Thread, Reply, Profile } from '@/lib/supabase/database.types';
+import { createNotification } from './notifications';
+import { sanitizeHtml } from '@/lib/sanitize';
+import { extractAndValidateMentions } from '@/lib/mentions';
+import { checkRateLimit, formatRetryTime } from '@/lib/rate-limit';
+// Import types from separate file (Next.js 15/16 'use server' files can only export async functions)
+import type { ReplyResult } from './action-types';
 
-export interface ReplyResult {
-  success: boolean;
-  error?: string;
-  replyId?: string;
-}
+// Re-export types for consumers
+export type { ReplyResult } from './action-types';
 
 interface CreateReplyData {
   threadId: string;
@@ -23,6 +26,16 @@ export async function createReply(data: CreateReplyData): Promise<ReplyResult> {
 
   if (!user) {
     return { success: false, error: 'You must be logged in to reply' };
+  }
+
+  // SECURITY: Check rate limit for reply creation
+  const rateLimitResult = await checkRateLimit(user.id, 'reply_create');
+  if (!rateLimitResult.allowed) {
+    const retryTime = await formatRetryTime(rateLimitResult.retryAfter || 0);
+    return {
+      success: false,
+      error: `You're posting too fast. Please wait ${retryTime} before trying again.`,
+    };
   }
 
   const { threadId, content, parentReplyId } = data;
@@ -52,6 +65,9 @@ export async function createReply(data: CreateReplyData): Promise<ReplyResult> {
     return { success: false, error: 'This thread is locked' };
   }
 
+  // SECURITY: Sanitize HTML content to prevent XSS attacks
+  const sanitizedContent = sanitizeHtml(content.trim());
+
   // Create the reply
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: reply, error } = await (supabase as any)
@@ -59,7 +75,7 @@ export async function createReply(data: CreateReplyData): Promise<ReplyResult> {
     .insert({
       thread_id: threadId,
       author_id: user.id,
-      content: content.trim(),
+      content: sanitizedContent,
       parent_reply_id: parentReplyId || null,
     })
     .select()
@@ -68,6 +84,90 @@ export async function createReply(data: CreateReplyData): Promise<ReplyResult> {
   if (error) {
     console.error('Create reply error:', error);
     return { success: false, error: 'Failed to create reply' };
+  }
+
+  // Create notification for thread author (if not replying to own thread)
+  try {
+    // Get thread details with author
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: threadWithAuthor } = await (supabase as any)
+      .from('threads')
+      .select(`
+        id,
+        slug,
+        title,
+        author_id
+      `)
+      .eq('id', threadId)
+      .single() as { data: { id: string; slug: string; title: string; author_id: string } | null };
+
+    if (threadWithAuthor && threadWithAuthor.author_id !== user.id) {
+      // Get actor username for notification message
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: actorProfile } = await (supabase as any)
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single() as { data: { username: string } | null };
+
+      if (actorProfile) {
+        const notificationMessage = `${actorProfile.username} replied to your thread "${threadWithAuthor.title}"`;
+        const notificationLink = `/thread/${threadWithAuthor.slug}`;
+
+        // Don't await - let notification creation happen in background
+        createNotification(
+          threadWithAuthor.author_id,
+          user.id,
+          'reply',
+          notificationMessage,
+          notificationLink
+        ).catch(err => console.error('[createReply] Notification error:', err));
+      }
+    }
+
+    // Process @mentions in the reply content
+    // Extract and validate mentioned users
+    const mentionedUsers = await extractAndValidateMentions(sanitizedContent);
+
+    if (mentionedUsers.length > 0 && threadWithAuthor) {
+      // Get actor username for mention notifications
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: actorProfile } = await (supabase as any)
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single() as { data: { username: string } | null };
+
+      if (actorProfile) {
+        // Create mention notification for each mentioned user
+        for (const mentionedUser of mentionedUsers) {
+          // Don't notify if user mentions themselves
+          if (mentionedUser.id === user.id) {
+            continue;
+          }
+
+          // Don't duplicate notification if already notifying thread author
+          if (mentionedUser.id === threadWithAuthor.author_id) {
+            continue;
+          }
+
+          const mentionMessage = `${actorProfile.username} mentioned you in "${threadWithAuthor.title}"`;
+          const mentionLink = `/thread/${threadWithAuthor.slug}`;
+
+          // Don't await - let notification creation happen in background
+          createNotification(
+            mentionedUser.id,
+            user.id,
+            'mention',
+            mentionMessage,
+            mentionLink
+          ).catch(err => console.error('[createReply] Mention notification error:', err));
+        }
+      }
+    }
+  } catch (notifError) {
+    // Log but don't fail the reply creation
+    console.error('[createReply] Failed to create notification:', notifError);
   }
 
   revalidatePath(`/thread/${thread.slug}`);
@@ -125,12 +225,15 @@ export async function updateReply(data: UpdateReplyData): Promise<ReplyResult> {
     }
   }
 
+  // SECURITY: Sanitize HTML content to prevent XSS attacks
+  const sanitizedContent = sanitizeHtml(content.trim());
+
   // Update the reply
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('replies')
     .update({
-      content: content.trim(),
+      content: sanitizedContent,
       is_edited: true,
     })
     .eq('id', replyId);
@@ -237,6 +340,8 @@ export async function toggleReplyLike(replyId: string): Promise<{ liked: boolean
     .eq('user_id', user.id)
     .single() as { data: { id: string } | null };
 
+  const isNowLiked = !existingLike;
+
   if (existingLike) {
     // Unlike
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -250,6 +355,56 @@ export async function toggleReplyLike(replyId: string): Promise<{ liked: boolean
     await (supabase as any)
       .from('reply_likes')
       .insert({ reply_id: replyId, user_id: user.id });
+
+    // Create notification for reply author (if not liking own reply)
+    try {
+      // Get reply details with author and thread info
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: replyDetails } = await (supabase as any)
+        .from('replies')
+        .select(`
+          id,
+          author_id,
+          thread_id,
+          threads!inner(slug, title)
+        `)
+        .eq('id', replyId)
+        .single() as {
+          data: {
+            id: string;
+            author_id: string;
+            thread_id: string;
+            threads: { slug: string; title: string };
+          } | null
+        };
+
+      if (replyDetails && replyDetails.author_id !== user.id) {
+        // Get actor username for notification message
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: actorProfile } = await (supabase as any)
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single() as { data: { username: string } | null };
+
+        if (actorProfile && replyDetails.threads) {
+          const notificationMessage = `${actorProfile.username} liked your reply`;
+          const notificationLink = `/thread/${replyDetails.threads.slug}`;
+
+          // Don't await - let notification creation happen in background
+          createNotification(
+            replyDetails.author_id,
+            user.id,
+            'like',
+            notificationMessage,
+            notificationLink
+          ).catch(err => console.error('[toggleReplyLike] Notification error:', err));
+        }
+      }
+    } catch (notifError) {
+      // Log but don't fail the like action
+      console.error('[toggleReplyLike] Failed to create notification:', notifError);
+    }
   }
 
   // Get updated like count
@@ -261,7 +416,7 @@ export async function toggleReplyLike(replyId: string): Promise<{ liked: boolean
     .single() as { data: Pick<Reply, 'like_count'> | null };
 
   return {
-    liked: !existingLike,
+    liked: isNowLiked,
     likeCount: reply?.like_count || 0,
   };
 }

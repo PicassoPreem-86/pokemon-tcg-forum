@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { CATEGORIES, getCategoryBySlug } from '@/lib/categories';
+import { getCategoryBySlug } from '@/lib/categories';
 import { getThreadsByCategory } from '@/lib/mock-data/threads';
 import { MessageSquare, Star, TrendingUp, Award, BookOpen, Newspaper, ArrowLeftRight } from 'lucide-react';
 import CategoryThreadList from '@/components/forum/CategoryThreadList';
