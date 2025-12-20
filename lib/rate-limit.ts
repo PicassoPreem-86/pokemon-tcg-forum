@@ -273,3 +273,11 @@ export async function resetRateLimit(userId: string, action: string): Promise<bo
     return false;
   }
 }
+
+/**
+ * Clear all rate limit records (for testing only)
+ * @internal
+ */
+export async function __clearAllRateLimits(): Promise<void> {
+  rateLimitStore.clear();
+}
