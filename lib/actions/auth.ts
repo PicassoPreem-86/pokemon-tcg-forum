@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createActionClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -9,7 +9,7 @@ import type { AuthResult, SignUpData, SignInData, UpdateProfileData } from './ty
 
 export async function signUp(data: SignUpData): Promise<AuthResult> {
   try {
-    const supabase = await createClient();
+    const supabase = await createActionClient();
 
     const { email, password, username, displayName } = data;
 
@@ -80,17 +80,18 @@ export async function signIn(data: SignInData): Promise<AuthResult> {
       return { success: false, error: 'Email and password are required' };
     }
 
-    // Test: Try to create the Supabase client
-    console.log('Creating Supabase client...');
-    const supabase = await createClient();
-    console.log('Supabase client created successfully');
+    // Use createActionClient for Server Actions - it properly sets cookies
+    console.log('Creating Supabase action client...');
+    const supabase = await createActionClient();
+    console.log('Supabase action client created successfully');
 
     console.log('Attempting sign in...');
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     console.log('Sign in attempt completed, error:', error?.message || 'none');
+    console.log('Sign in session:', authData?.session ? 'exists' : 'none');
 
     if (error) {
       console.error('Login error:', error);
@@ -112,7 +113,7 @@ export async function signIn(data: SignInData): Promise<AuthResult> {
 
 export async function signInWithGoogle(): Promise<AuthResult> {
   try {
-    const supabase = await createClient();
+    const supabase = await createActionClient();
     const headersList = await headers();
     const origin = headersList.get('origin') || 'http://localhost:3000';
 
@@ -145,7 +146,7 @@ export async function signInWithGoogle(): Promise<AuthResult> {
 
 export async function signOut(): Promise<AuthResult> {
   try {
-    const supabase = await createClient();
+    const supabase = await createActionClient();
     await supabase.auth.signOut();
     revalidatePath('/', 'layout');
     return { success: true, redirectTo: '/' };
