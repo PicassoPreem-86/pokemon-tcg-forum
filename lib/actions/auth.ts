@@ -109,7 +109,7 @@ export async function signInWithGoogle(): Promise<AuthResult> {
   try {
     const supabase = await createActionClient();
     const headersList = await headers();
-    const origin = headersList.get('origin') || 'http://localhost:3000';
+    const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -214,7 +214,7 @@ export async function getCurrentUser() {
 export async function resetPassword(email: string): Promise<AuthResult> {
   const supabase = await createClient();
   const headersList = await headers();
-  const origin = headersList.get('origin') || 'http://localhost:3000';
+  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${origin}/auth/reset-password`,
