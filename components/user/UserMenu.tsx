@@ -95,7 +95,6 @@ export default function UserMenu() {
   };
 
   // Debug logging
-  console.log('UserMenu state:', { isHydrated, isAuthenticated, user: user?.username || null });
 
   // Show skeleton during SSR/hydration to prevent mismatch
   if (!isHydrated) {

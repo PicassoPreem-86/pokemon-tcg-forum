@@ -9,14 +9,6 @@ export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Debug: Log all cookies to see what's being sent
-  const allCookies = request.cookies.getAll();
-  const supabaseCookies = allCookies.filter(c => c.name.includes('supabase') || c.name.includes('sb-'));
-  console.log('[Middleware] Path:', request.nextUrl.pathname, '| Supabase cookies count:', supabaseCookies.length);
-  if (supabaseCookies.length > 0) {
-    console.log('[Middleware] Cookie names:', supabaseCookies.map(c => c.name).join(', '));
-  }
-
   // If env vars are missing, just pass through without auth
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Middleware: Missing Supabase environment variables');
@@ -48,14 +40,11 @@ export async function updateSession(request: NextRequest) {
     );
 
     // Refresh session if expired - required for Server Components
-    // https://supabase.com/docs/guides/auth/server-side/nextjs
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    console.log('[Middleware] Path:', request.nextUrl.pathname, '| User:', user?.email || 'none');
-
-    // Optional: Protect routes that require authentication
+    // Protect routes that require authentication
     const protectedRoutes = ['/new', '/admin'];
     const isProtectedRoute = protectedRoutes.some((route) =>
       request.nextUrl.pathname.startsWith(route)
@@ -71,7 +60,6 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   } catch (error) {
     console.error('Middleware error:', error);
-    // On error, just pass through without blocking
     return supabaseResponse;
   }
 }

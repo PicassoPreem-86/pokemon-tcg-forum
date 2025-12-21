@@ -70,9 +70,6 @@ export async function signUp(data: SignUpData): Promise<AuthResult> {
 }
 
 export async function signIn(data: SignInData): Promise<AuthResult> {
-  // Debug: Log that we reached the server action
-  console.log('signIn called with email:', data.email);
-
   try {
     const { email, password } = data;
 
@@ -80,18 +77,12 @@ export async function signIn(data: SignInData): Promise<AuthResult> {
       return { success: false, error: 'Email and password are required' };
     }
 
-    // Use createActionClient for Server Actions - it properly sets cookies
-    console.log('Creating Supabase action client...');
     const supabase = await createActionClient();
-    console.log('Supabase action client created successfully');
 
-    console.log('Attempting sign in...');
     const { data: authData, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    console.log('Sign in attempt completed, error:', error?.message || 'none');
-    console.log('Sign in session:', authData?.session ? 'exists' : 'none');
 
     if (error) {
       console.error('Login error:', error);
@@ -101,15 +92,9 @@ export async function signIn(data: SignInData): Promise<AuthResult> {
       return { success: false, error: error.message };
     }
 
-    console.log('[Auth Action] Sign in successful!');
-    console.log('[Auth Action] Session user:', authData.session?.user?.email);
-    console.log('[Auth Action] Access token present:', !!authData.session?.access_token);
-    console.log('[Auth Action] Refresh token present:', !!authData.session?.refresh_token);
-    console.log('[Auth Action] Session expires at:', authData.session?.expires_at ? new Date(authData.session.expires_at * 1000).toISOString() : 'unknown');
-
-    // Verify the session was set by trying to get the user
-    const { data: verifyUser } = await supabase.auth.getUser();
-    console.log('[Auth Action] Verified user after login:', verifyUser.user?.email || 'none');
+    if (!authData.session) {
+      return { success: false, error: 'Failed to create session' };
+    }
 
     revalidatePath('/', 'layout');
     return { success: true, redirectTo: '/' };
