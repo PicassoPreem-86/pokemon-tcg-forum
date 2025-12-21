@@ -42,14 +42,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const supabase = getSupabaseClient();
 
-      const { data: profile, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profile, error } = await (supabase as any)
         .from('profiles')
         .select(`
           *,
           badges:user_badges(*)
         `)
         .eq('id', authUser.id)
-        .single();
+        .single() as { data: (Profile & { badges: UserBadge[] }) | null; error: Error | null };
 
       if (error) {
         console.error('Error fetching user profile:', error);
@@ -61,7 +62,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return {
         ...profile,
         email: authUser.email || '',
-        badges: profile.badges || [],
       } as AuthUser;
     } catch (err) {
       console.error('Exception fetching user profile:', err);
