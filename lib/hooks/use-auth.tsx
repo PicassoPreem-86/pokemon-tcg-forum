@@ -80,6 +80,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
+    let hydrationTimeout: NodeJS.Timeout | null = null;
+
+    // Ensure hydration happens within 3 seconds even if Supabase hangs
+    hydrationTimeout = setTimeout(() => {
+      if (!isHydrated) {
+        console.warn('Auth: Hydration timeout - forcing hydration');
+        setIsLoading(false);
+        setIsHydrated(true);
+      }
+    }, 3000);
 
     // Initial session check
     const initializeAuth = async () => {
@@ -120,6 +130,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
+        if (hydrationTimeout) {
+          clearTimeout(hydrationTimeout);
+        }
         setIsLoading(false);
         setIsHydrated(true);
         console.log('Auth: Hydrated');
@@ -129,11 +142,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
 
     return () => {
+      if (hydrationTimeout) {
+        clearTimeout(hydrationTimeout);
+      }
       if (subscription) {
         subscription.unsubscribe();
       }
     };
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, isHydrated]);
 
   const value = {
     user,
