@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { Profile, UserBadge } from '@/lib/supabase/database.types';
@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
+  const initializationRef = useRef(false);
 
   const fetchUserProfile = useCallback(async (authUser: User) => {
     const supabase = getSupabaseClient();
@@ -79,17 +80,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUserProfile]);
 
   useEffect(() => {
+    // Prevent double initialization in React 18 Strict Mode
+    if (initializationRef.current) {
+      return;
+    }
+    initializationRef.current = true;
+
     let subscription: { unsubscribe: () => void } | null = null;
     let hydrationTimeout: NodeJS.Timeout | null = null;
+    let isCleanedUp = false;
 
-    // Ensure hydration happens within 3 seconds even if Supabase hangs
+    // Force hydration after 2 seconds no matter what
     hydrationTimeout = setTimeout(() => {
-      if (!isHydrated) {
+      if (!isCleanedUp) {
         console.warn('Auth: Hydration timeout - forcing hydration');
         setIsLoading(false);
         setIsHydrated(true);
       }
-    }, 3000);
+    }, 2000);
 
     // Initial session check
     const initializeAuth = async () => {
@@ -100,11 +108,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
         console.log('Auth: getUser result:', { authUser: authUser?.email, error: authError?.message });
 
+        if (isCleanedUp) return;
+
         if (authUser) {
           const profile = await fetchUserProfile(authUser);
           console.log('Auth: Profile fetched:', profile?.username);
-          setUser(profile);
-          setSupabaseUser(authUser);
+          if (!isCleanedUp) {
+            setUser(profile);
+            setSupabaseUser(authUser);
+          }
         } else {
           console.log('Auth: No user found');
         }
@@ -112,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Listen for auth changes
         const { data } = supabase.auth.onAuthStateChange(
           async (event, session) => {
+            if (isCleanedUp) return;
             if (event === 'SIGNED_IN' && session?.user) {
               const profile = await fetchUserProfile(session.user);
               setUser(profile);
@@ -130,18 +143,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        if (hydrationTimeout) {
-          clearTimeout(hydrationTimeout);
+        if (!isCleanedUp) {
+          if (hydrationTimeout) {
+            clearTimeout(hydrationTimeout);
+          }
+          setIsLoading(false);
+          setIsHydrated(true);
+          console.log('Auth: Hydrated');
         }
-        setIsLoading(false);
-        setIsHydrated(true);
-        console.log('Auth: Hydrated');
       }
     };
 
     initializeAuth();
 
     return () => {
+      isCleanedUp = true;
       if (hydrationTimeout) {
         clearTimeout(hydrationTimeout);
       }
@@ -149,7 +165,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         subscription.unsubscribe();
       }
     };
-  }, [fetchUserProfile, isHydrated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const value = {
     user,
