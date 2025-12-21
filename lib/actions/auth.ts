@@ -105,6 +105,12 @@ export async function signIn(data: SignInData): Promise<AuthResult> {
     console.log('[Auth Action] Session user:', authData.session?.user?.email);
     console.log('[Auth Action] Access token present:', !!authData.session?.access_token);
     console.log('[Auth Action] Refresh token present:', !!authData.session?.refresh_token);
+    console.log('[Auth Action] Session expires at:', authData.session?.expires_at ? new Date(authData.session.expires_at * 1000).toISOString() : 'unknown');
+
+    // Verify the session was set by trying to get the user
+    const { data: verifyUser } = await supabase.auth.getUser();
+    console.log('[Auth Action] Verified user after login:', verifyUser.user?.email || 'none');
+
     revalidatePath('/', 'layout');
     return { success: true, redirectTo: '/' };
   } catch (error) {
