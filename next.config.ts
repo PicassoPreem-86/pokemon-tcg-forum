@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', 'date-fns'],
   },
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    // Temporarily disable console removal for debugging auth issues
+    // removeConsole: process.env.NODE_ENV === 'production',
   },
   images: {
     // Allow data URLs for user-uploaded images (base64)

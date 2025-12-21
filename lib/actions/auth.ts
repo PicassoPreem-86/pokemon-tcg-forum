@@ -101,7 +101,10 @@ export async function signIn(data: SignInData): Promise<AuthResult> {
       return { success: false, error: error.message };
     }
 
-    console.log('Sign in successful, revalidating path...');
+    console.log('[Auth Action] Sign in successful!');
+    console.log('[Auth Action] Session user:', authData.session?.user?.email);
+    console.log('[Auth Action] Access token present:', !!authData.session?.access_token);
+    console.log('[Auth Action] Refresh token present:', !!authData.session?.refresh_token);
     revalidatePath('/', 'layout');
     return { success: true, redirectTo: '/' };
   } catch (error) {

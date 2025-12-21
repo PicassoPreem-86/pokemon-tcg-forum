@@ -101,17 +101,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const supabase = getSupabaseClient();
 
-        // Get current session
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        // Get current session - try both getSession and getUser
+        console.log('[Auth] Initializing auth...');
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        console.log('[Auth] getSession result:', {
+          hasSession: !!sessionData.session,
+          sessionUser: sessionData.session?.user?.email || null,
+          error: sessionError?.message || null,
+        });
+
+        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+        console.log('[Auth] getUser result:', {
+          hasUser: !!authUser,
+          userEmail: authUser?.email || null,
+          error: userError?.message || null,
+        });
 
         if (!mounted) return;
 
         if (authUser) {
+          console.log('[Auth] User found, fetching profile...');
           const profile = await fetchUserProfile(authUser);
+          console.log('[Auth] Profile fetched:', { hasProfile: !!profile, username: profile?.username || null });
           if (mounted) {
             setUser(profile);
             setSupabaseUser(authUser);
           }
+        } else {
+          console.log('[Auth] No user found during initialization');
         }
 
         // Set up auth state listener
