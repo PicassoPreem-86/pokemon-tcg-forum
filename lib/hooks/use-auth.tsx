@@ -101,29 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const supabase = getSupabaseClient();
 
-        // Debug: Check session first
-        const { data: sessionData } = await supabase.auth.getSession();
-        console.log('[useAuth] Session check:', {
-          hasSession: !!sessionData.session,
-          userId: sessionData.session?.user?.id || null,
-          email: sessionData.session?.user?.email || null,
-        });
-
-        const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
-        console.log('[useAuth] getUser result:', {
-          hasUser: !!authUser,
-          email: authUser?.email || null,
-          error: userError?.message || null,
-        });
+        const { data: { user: authUser } } = await supabase.auth.getUser();
 
         if (!mounted) return;
 
         if (authUser) {
           const profile = await fetchUserProfile(authUser);
-          console.log('[useAuth] Profile fetched:', {
-            hasProfile: !!profile,
-            username: profile?.username || null,
-          });
           if (mounted) {
             setUser(profile);
             setSupabaseUser(authUser);
@@ -133,7 +116,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Set up auth state listener
         const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
           if (!mounted) return;
-          console.log('[useAuth] Auth state changed:', event, session?.user?.email || null);
 
           if (event === 'SIGNED_IN' && session?.user) {
             const profile = await fetchUserProfile(session.user);
