@@ -81,6 +81,8 @@ export type ModerationAction =
   | 'unsuspend_user'
   | 'delete_thread'
   | 'delete_reply'
+  | 'restore_thread'
+  | 'restore_reply'
   | 'lock_thread'
   | 'unlock_thread'
   | 'pin_thread'
@@ -247,4 +249,58 @@ export interface ReportStats {
   resolvedToday: number;
   byReason: Record<string, number>;
   byStatus: Record<string, number>;
+}
+
+// ============================================
+// Admin Content Types
+// ============================================
+
+export type ContentType = 'thread' | 'reply';
+export type ContentStatus = 'active' | 'flagged' | 'deleted' | 'locked';
+
+export interface AdminContentItem {
+  id: string;
+  type: ContentType;
+  title: string;
+  content: string;
+  excerpt: string;
+  author_id: string;
+  author_username: string;
+  author_avatar: string | null;
+  category_id: string | null;
+  category_name: string | null;
+  category_slug: string | null;
+  thread_id: string | null; // For replies, the parent thread
+  thread_slug: string | null; // For replies, the parent thread slug
+  is_pinned: boolean;
+  is_locked: boolean;
+  view_count: number;
+  reply_count: number;
+  report_count: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface GetContentFilters {
+  type?: ContentType;
+  status?: 'all' | 'active' | 'flagged' | 'deleted';
+  search?: string;
+  categoryId?: string;
+  authorId?: string;
+  hasReports?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ContentStats {
+  totalThreads: number;
+  totalReplies: number;
+  flaggedContent: number;
+  deletedToday: number;
+}
+
+export interface ContentActionResult {
+  success: boolean;
+  error?: string;
 }
