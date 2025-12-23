@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import {
   withAdminAuth,
+  logAdminAction,
   type AdminActionResult,
 } from '@/lib/auth/admin-check';
 import { checkRateLimit } from '@/lib/auth/utils';
@@ -151,7 +152,7 @@ export async function banUser(
       throw new Error(`Failed to ban user: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'ban_user',
       userId,
@@ -164,6 +165,15 @@ export async function banUser(
         banned_until: bannedUntil,
       }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('ban_user', {
+      userId,
+      username: targetUser.username,
+      reason,
+      duration: duration || 'permanent',
+      bannedUntil,
+    }, adminProfile);
 
     revalidatePath('/admin/users');
     revalidatePath(`/profile/${targetUser.username}`);
@@ -218,7 +228,7 @@ export async function unbanUser(userId: string): Promise<AdminActionResult<void>
       throw new Error(`Failed to unban user: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'unban_user',
       userId,
@@ -227,6 +237,12 @@ export async function unbanUser(userId: string): Promise<AdminActionResult<void>
       adminProfile,
       { username: targetUser.username }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('unban_user', {
+      userId,
+      username: targetUser.username,
+    }, adminProfile);
 
     revalidatePath('/admin/users');
     revalidatePath(`/profile/${targetUser.username}`);
@@ -315,7 +331,7 @@ export async function suspendUser(
       throw new Error(`Failed to suspend user: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'suspend_user',
       userId,
@@ -328,6 +344,15 @@ export async function suspendUser(
         suspended_until: suspendedUntil,
       }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('suspend_user', {
+      userId,
+      username: targetUser.username,
+      reason,
+      days,
+      suspendedUntil,
+    }, adminProfile);
 
     revalidatePath('/admin/users');
     revalidatePath(`/profile/${targetUser.username}`);
@@ -382,7 +407,7 @@ export async function unsuspendUser(userId: string): Promise<AdminActionResult<v
       throw new Error(`Failed to unsuspend user: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'unsuspend_user',
       userId,
@@ -391,6 +416,12 @@ export async function unsuspendUser(userId: string): Promise<AdminActionResult<v
       adminProfile,
       { username: targetUser.username }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('unsuspend_user', {
+      userId,
+      username: targetUser.username,
+    }, adminProfile);
 
     revalidatePath('/admin/users');
     revalidatePath(`/profile/${targetUser.username}`);
@@ -452,7 +483,7 @@ export async function deleteThread(
       throw new Error(`Failed to delete thread: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'delete_thread',
       threadId,
@@ -461,6 +492,13 @@ export async function deleteThread(
       adminProfile,
       { title: thread.title }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('delete_thread', {
+      threadId,
+      title: thread.title,
+      reason,
+    }, adminProfile);
 
     revalidatePath('/admin/content');
     revalidatePath('/');
@@ -522,7 +560,7 @@ export async function deleteReply(
       throw new Error(`Failed to delete reply: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'delete_reply',
       replyId,
@@ -531,6 +569,13 @@ export async function deleteReply(
       adminProfile,
       { thread_id: reply.thread_id }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('delete_reply', {
+      replyId,
+      threadId: reply.thread_id,
+      reason,
+    }, adminProfile);
 
     revalidatePath('/admin/content');
   });
@@ -580,7 +625,7 @@ export async function lockThread(threadId: string): Promise<AdminActionResult<vo
       throw new Error(`Failed to lock thread: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'lock_thread',
       threadId,
@@ -589,6 +634,12 @@ export async function lockThread(threadId: string): Promise<AdminActionResult<vo
       adminProfile,
       { title: thread.title }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('lock_thread', {
+      threadId,
+      title: thread.title,
+    }, adminProfile);
 
     revalidatePath('/admin/content');
     revalidatePath('/');
@@ -639,7 +690,7 @@ export async function unlockThread(threadId: string): Promise<AdminActionResult<
       throw new Error(`Failed to unlock thread: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'unlock_thread',
       threadId,
@@ -648,6 +699,12 @@ export async function unlockThread(threadId: string): Promise<AdminActionResult<
       adminProfile,
       { title: thread.title }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('unlock_thread', {
+      threadId,
+      title: thread.title,
+    }, adminProfile);
 
     revalidatePath('/admin/content');
     revalidatePath('/');
@@ -698,7 +755,7 @@ export async function pinThread(threadId: string): Promise<AdminActionResult<voi
       throw new Error(`Failed to pin thread: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'pin_thread',
       threadId,
@@ -707,6 +764,12 @@ export async function pinThread(threadId: string): Promise<AdminActionResult<voi
       adminProfile,
       { title: thread.title }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('pin_thread', {
+      threadId,
+      title: thread.title,
+    }, adminProfile);
 
     revalidatePath('/admin/content');
     revalidatePath('/');
@@ -757,7 +820,7 @@ export async function unpinThread(threadId: string): Promise<AdminActionResult<v
       throw new Error(`Failed to unpin thread: ${updateError.message}`);
     }
 
-    // Log the moderation action
+    // Log the moderation action (to moderation_logs table)
     await logModerationAction(
       'unpin_thread',
       threadId,
@@ -766,6 +829,12 @@ export async function unpinThread(threadId: string): Promise<AdminActionResult<v
       adminProfile,
       { title: thread.title }
     );
+
+    // Log to admin audit log (for admin dashboard)
+    await logAdminAction('unpin_thread', {
+      threadId,
+      title: thread.title,
+    }, adminProfile);
 
     revalidatePath('/admin/content');
     revalidatePath('/');
