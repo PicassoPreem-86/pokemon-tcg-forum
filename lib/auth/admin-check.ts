@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import type { Profile, UserRole } from '@/lib/supabase/database.types';
 import { UnauthorizedError, ForbiddenError } from './errors';
 import { isAdminRole } from './utils';
@@ -194,7 +195,7 @@ export async function withAdminAuth<T>(
 
 /**
  * Audit log helper for admin actions
- * Logs important admin actions for security monitoring
+ * Logs important admin actions to database for security monitoring and compliance
  */
 export async function logAdminAction(
   action: string,
@@ -202,27 +203,51 @@ export async function logAdminAction(
   adminProfile: Profile
 ): Promise<void> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future database audit logging
-    const _supabase = await createClient();
+    const supabase = await createClient();
+    const headersList = await headers();
 
-    // You can expand this to log to a dedicated audit table
+    // Extract request metadata
+    const ipAddress = headersList.get('x-forwarded-for') ||
+                     headersList.get('x-real-ip') ||
+                     null;
+    const userAgent = headersList.get('user-agent') || null;
+
+    // Prepare log entry
+    const logEntry = {
+      admin_id: adminProfile.id,
+      action,
+      details: JSON.parse(JSON.stringify(details)), // Ensure serializable
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      created_at: new Date().toISOString(),
+    };
+
+    // Insert into admin_audit_log table
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
+      .from('admin_audit_log')
+      .insert(logEntry);
+
+    if (error) {
+      // Log error but don't throw - we don't want logging failures to break admin actions
+      console.error('[ADMIN AUDIT LOG ERROR]', {
+        error: error.message,
+        action,
+        admin: adminProfile.username,
+      });
+    }
+
+    // Also log to console for immediate visibility during development
     console.log('[ADMIN ACTION]', {
       timestamp: new Date().toISOString(),
       admin_id: adminProfile.id,
       admin_username: adminProfile.username,
       action,
       details,
+      ip_address: ipAddress,
     });
-
-    // TODO: Implement database audit logging
-    // await supabase.from('admin_audit_log').insert({
-    //   admin_id: adminProfile.id,
-    //   action,
-    //   details,
-    //   ip_address: headers().get('x-forwarded-for'),
-    //   user_agent: headers().get('user-agent'),
-    // });
   } catch (error) {
     console.error('Failed to log admin action:', error);
+    // Don't throw - logging failures shouldn't break admin operations
   }
 }

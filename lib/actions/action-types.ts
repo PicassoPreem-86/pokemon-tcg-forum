@@ -137,3 +137,37 @@ export interface ReplyModerationData {
   author_id?: string;
   deleted_at?: string | null;
 }
+
+// ============================================
+// Admin Audit Log Types
+// ============================================
+
+export interface AdminAuditLog {
+  id: string;
+  admin_id: string;
+  action: string;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+  admin?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+export interface GetAuditLogsFilters {
+  adminId?: string;
+  action?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AuditLogStats {
+  totalActions: number;
+  actionsByType: Record<string, number>;
+  recentActivity: AdminAuditLog[];
+}
