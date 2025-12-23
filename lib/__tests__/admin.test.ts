@@ -215,9 +215,19 @@ describe('Admin Actions', () => {
     });
 
     it('should handle missing is_banned column gracefully', async () => {
-      mockSupabase.from.mockImplementation(() => ({
+      // Track which query we're on to simulate the is_banned column error
+      // The getAdminStats function makes multiple queries; we need most to succeed
+      // but the is_banned query (which uses .eq('is_banned', true)) should fail
+      mockSupabase.from.mockImplementation((table: string) => ({
         select: jest.fn(() => ({
-          eq: jest.fn(() => Promise.reject(new Error('Column not found'))),
+          eq: jest.fn((column: string) => {
+            // Only throw for the is_banned column query
+            if (column === 'is_banned') {
+              return Promise.reject(new Error('Column not found'));
+            }
+            // For 'status' = 'pending' (reports query), return 0
+            return Promise.resolve({ count: 0, data: [] });
+          }),
           gte: jest.fn(() => Promise.resolve({ count: 0, data: [] })),
         })),
       }));

@@ -71,7 +71,7 @@ describe('useAuth Hook', () => {
   });
 
   describe('Initial Authentication State', () => {
-    it('should start with loading state', () => {
+    it('should start with loading state and then complete', async () => {
       mockSupabase.auth.getUser.mockResolvedValue({
         data: { user: null },
         error: null,
@@ -81,12 +81,18 @@ describe('useAuth Hook', () => {
         wrapper: AuthProvider,
       });
 
+      // Check initial state is loading
       expect(result.current.isLoading).toBe(true);
       expect(result.current.user).toBeNull();
       expect(result.current.isAuthenticated).toBe(false);
+
+      // Wait for async initialization to complete to avoid act() warnings
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
     });
 
-    it('should hydrate immediately on mount', () => {
+    it('should hydrate immediately on mount', async () => {
       mockSupabase.auth.getUser.mockResolvedValue({
         data: { user: null },
         error: null,
@@ -97,6 +103,11 @@ describe('useAuth Hook', () => {
       });
 
       expect(result.current.isHydrated).toBe(true);
+
+      // Wait for async initialization to complete to avoid act() warnings
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
     });
   });
 
