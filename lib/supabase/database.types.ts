@@ -27,10 +27,12 @@ export interface Database {
           banned_at: string | null
           banned_reason: string | null
           banned_until: string | null
+          banned_by: string | null
           is_suspended: boolean
           suspended_at: string | null
           suspended_reason: string | null
           suspended_until: string | null
+          suspended_by: string | null
           created_at: string
           updated_at: string
         }
@@ -49,10 +51,12 @@ export interface Database {
           banned_at?: string | null
           banned_reason?: string | null
           banned_until?: string | null
+          banned_by?: string | null
           is_suspended?: boolean
           suspended_at?: string | null
           suspended_reason?: string | null
           suspended_until?: string | null
+          suspended_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -71,10 +75,12 @@ export interface Database {
           banned_at?: string | null
           banned_reason?: string | null
           banned_until?: string | null
+          banned_by?: string | null
           is_suspended?: boolean
           suspended_at?: string | null
           suspended_reason?: string | null
           suspended_until?: string | null
+          suspended_by?: string | null
           created_at?: string
           updated_at?: string
         }

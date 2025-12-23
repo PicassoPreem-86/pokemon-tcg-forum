@@ -142,6 +142,7 @@ export async function banUser(
         banned_at: new Date().toISOString(),
         banned_reason: reason,
         banned_until: bannedUntil,
+        banned_by: adminProfile.id,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
@@ -208,6 +209,7 @@ export async function unbanUser(userId: string): Promise<AdminActionResult<void>
         banned_at: null,
         banned_reason: null,
         banned_until: null,
+        banned_by: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
@@ -304,6 +306,7 @@ export async function suspendUser(
         suspended_at: new Date().toISOString(),
         suspended_reason: reason,
         suspended_until: suspendedUntil,
+        suspended_by: adminProfile.id,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
@@ -370,6 +373,7 @@ export async function unsuspendUser(userId: string): Promise<AdminActionResult<v
         suspended_at: null,
         suspended_reason: null,
         suspended_until: null,
+        suspended_by: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
