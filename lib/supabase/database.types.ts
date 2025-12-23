@@ -451,6 +451,53 @@ export interface Database {
           updated_at?: string
         }
       }
+      reports: {
+        Row: {
+          id: string
+          reporter_id: string
+          target_type: 'user' | 'thread' | 'reply'
+          target_id: string
+          reason: 'spam' | 'harassment' | 'offensive' | 'scam' | 'illegal' | 'other'
+          details: string | null
+          status: 'pending' | 'reviewing' | 'resolved' | 'dismissed'
+          priority: 'low' | 'medium' | 'high'
+          moderator_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          reporter_id: string
+          target_type: 'user' | 'thread' | 'reply'
+          target_id: string
+          reason?: 'spam' | 'harassment' | 'offensive' | 'scam' | 'illegal' | 'other'
+          details?: string | null
+          status?: 'pending' | 'reviewing' | 'resolved' | 'dismissed'
+          priority?: 'low' | 'medium' | 'high'
+          moderator_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          reporter_id?: string
+          target_type?: 'user' | 'thread' | 'reply'
+          target_id?: string
+          reason?: 'spam' | 'harassment' | 'offensive' | 'scam' | 'illegal' | 'other'
+          details?: string | null
+          status?: 'pending' | 'reviewing' | 'resolved' | 'dismissed'
+          priority?: 'low' | 'medium' | 'high'
+          moderator_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -512,3 +559,13 @@ export type NotificationWithActor = Notification & {
 
 // Rate Limit type
 export type RateLimit = Database['public']['Tables']['rate_limits']['Row']
+
+// Report type
+export type Report = Database['public']['Tables']['reports']['Row']
+
+// Report with related data
+export type ReportWithDetails = Report & {
+  reporter: Profile
+  moderator: Profile | null
+  // Content details are fetched separately based on target_type
+}

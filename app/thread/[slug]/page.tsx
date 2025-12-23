@@ -40,6 +40,7 @@ import { insertFormatting } from '@/lib/content-renderer';
 import RichContent from '@/components/forum/RichContent';
 import NestedReplies from '@/components/forum/NestedReplies';
 import BookmarkButton from '@/components/forum/BookmarkButton';
+import ReportButton from '@/components/ReportButton';
 
 // Role badge colors and icons
 const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -294,6 +295,15 @@ function PostCard({ post, isFirst, onQuote, threadId }: PostCardProps) {
           </button>
 
           {isFirst && threadId && <BookmarkButton threadId={threadId} showLabel={false} />}
+
+          {isFirst && threadId && (
+            <ReportButton
+              targetType="thread"
+              targetId={threadId}
+              iconOnly
+              className="post-action-btn"
+            />
+          )}
 
           <button className="post-action-btn post-action-more">
             <MoreHorizontal size={16} />
@@ -1304,6 +1314,13 @@ function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserRepl
               </button>
             </>
           )}
+
+          <ReportButton
+            targetType="reply"
+            targetId={reply.id}
+            iconOnly
+            className="post-action-btn"
+          />
 
           <button className="post-action-btn post-action-more">
             <MoreHorizontal size={16} />

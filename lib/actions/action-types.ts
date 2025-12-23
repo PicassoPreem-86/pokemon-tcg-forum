@@ -171,3 +171,80 @@ export interface AuditLogStats {
   actionsByType: Record<string, number>;
   recentActivity: AdminAuditLog[];
 }
+
+// ============================================
+// Report Types
+// ============================================
+
+export type ReportReason = 'spam' | 'harassment' | 'offensive' | 'scam' | 'illegal' | 'other';
+export type ReportStatus = 'pending' | 'reviewing' | 'resolved' | 'dismissed';
+export type ReportPriority = 'low' | 'medium' | 'high';
+export type ReportTargetType = 'user' | 'thread' | 'reply';
+
+export interface SubmitReportInput {
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  details?: string;
+}
+
+export interface ReportResult {
+  success: boolean;
+  error?: string;
+  reportId?: string;
+}
+
+export interface ReportWithContent {
+  id: string;
+  reporter_id: string;
+  target_type: ReportTargetType;
+  target_id: string;
+  reason: ReportReason;
+  details: string | null;
+  status: ReportStatus;
+  priority: ReportPriority;
+  moderator_id: string | null;
+  resolution_notes: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  reporter?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+  moderator?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null;
+  // Content data (fetched based on target_type)
+  content?: {
+    title?: string;
+    excerpt?: string;
+    author_username?: string;
+    author_avatar?: string;
+    category_name?: string;
+  };
+}
+
+export interface GetReportsFilters {
+  status?: ReportStatus;
+  reason?: ReportReason;
+  priority?: ReportPriority;
+  targetType?: ReportTargetType;
+  reporterId?: string;
+  moderatorId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ReportStats {
+  totalReports: number;
+  pendingReports: number;
+  highPriorityPending: number;
+  resolvedToday: number;
+  byReason: Record<string, number>;
+  byStatus: Record<string, number>;
+}

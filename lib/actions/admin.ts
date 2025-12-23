@@ -111,6 +111,13 @@ export async function getAdminStats(): Promise<AdminActionResult<AdminStats>> {
       console.log('is_banned column not found - run migrations');
     }
 
+    // Get pending reports count
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: pendingReportsCount } = await (supabase as any)
+      .from('reports')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+
     const stats: AdminStats = {
       totalUsers: totalUsers || 0,
       totalPosts: (totalReplies || 0) + (totalThreads || 0),
@@ -120,7 +127,7 @@ export async function getAdminStats(): Promise<AdminActionResult<AdminStats>> {
       newUsersToday: newUsersToday || 0,
       newPostsToday: (newRepliesToday || 0) + (newThreadsToday || 0),
       newThreadsToday: newThreadsToday || 0,
-      pendingReports: 0, // TODO: Implement reports table
+      pendingReports: pendingReportsCount || 0,
       bannedUsers: bannedUsers || 0,
     };
 

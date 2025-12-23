@@ -35,6 +35,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/hooks';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 import { formatNumber } from '@/lib/categories';
+import ReportButton from '@/components/ReportButton';
 import type { Profile, UserBadge } from '@/lib/supabase/database.types';
 
 // Extended profile type with badges
@@ -347,6 +348,15 @@ export default function UserProfilePage() {
                   Message
                 </button>
               </>
+            )}
+            {!isOwnProfile && (
+              <ReportButton
+                targetType="user"
+                targetId={profile.id}
+                targetTitle={profile.display_name || profile.username}
+                iconOnly
+                className="btn btn-ghost"
+              />
             )}
             <button className="btn btn-ghost">
               <MoreHorizontal size={16} />
