@@ -10,6 +10,7 @@ import {
   X,
   Bell,
   Zap,
+  PenSquare,
 } from 'lucide-react';
 import { NAV_ITEMS } from '@/lib/config';
 import { cn } from '@/lib/utils';
@@ -96,8 +97,19 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
               ))}
             </nav>
 
-            {/* Right: Search, Notifications, User */}
+            {/* Right: New Thread, Search, Notifications, User */}
             <div className="flex items-center gap-2">
+              {/* New Thread Button - Only show when authenticated */}
+              {isHydrated && isAuthenticated && (
+                <Link
+                  href="/new"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-sm font-medium rounded-lg transition-all"
+                >
+                  <PenSquare className="h-4 w-4" />
+                  <span>New Thread</span>
+                </Link>
+              )}
+
               {/* Search */}
               <div className="relative">
                 {isSearchOpen ? (
