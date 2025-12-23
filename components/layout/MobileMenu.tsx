@@ -14,6 +14,7 @@ import {
   Clock,
   Flame,
   Shield,
+  PenSquare,
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
 import { useAuth } from '@/lib/hooks';
@@ -95,6 +96,18 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             <Search className="w-5 h-5" />
             <span>Search topics, posts, users...</span>
           </Link>
+
+          {/* New Thread Button - Only for authenticated users */}
+          {isHydrated && isAuthenticated && (
+            <Link
+              href="/new"
+              className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-medium rounded-lg transition-all"
+              onClick={onClose}
+            >
+              <PenSquare className="w-5 h-5" />
+              <span>New Thread</span>
+            </Link>
+          )}
 
           {/* Quick Links */}
           <div className="mobile-menu-section">
