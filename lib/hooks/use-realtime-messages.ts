@@ -4,38 +4,37 @@ import { useEffect, useCallback, useRef } from 'react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
-export interface RealtimeNotification {
+export interface RealtimeDirectMessage {
   id: string;
-  user_id: string;
-  actor_id: string | null;
-  type: 'reply' | 'mention' | 'like' | 'follow' | 'badge' | 'message';
-  message: string;
-  link: string | null;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
   is_read: boolean;
+  deleted_at: string | null;
   created_at: string;
 }
 
-interface UseRealtimeNotificationsOptions {
-  /** Called when a new notification is inserted */
-  onInsert?: (notification: RealtimeNotification) => void;
-  /** Called when a notification is updated (e.g., marked as read) */
-  onUpdate?: (notification: RealtimeNotification) => void;
-  /** Called when a notification is deleted */
-  onDelete?: (oldNotification: { id: string }) => void;
+interface UseRealtimeMessagesOptions {
+  /** Called when a new message is inserted */
+  onInsert?: (message: RealtimeDirectMessage) => void;
+  /** Called when a message is updated (e.g., marked as read) */
+  onUpdate?: (message: RealtimeDirectMessage) => void;
+  /** Called when a message is deleted */
+  onDelete?: (oldMessage: { id: string }) => void;
   /** Whether to enable the subscription */
   enabled?: boolean;
 }
 
 /**
- * Hook to subscribe to real-time notification updates via Supabase Realtime
+ * Hook to subscribe to real-time direct message updates for a conversation
  *
- * @param userId - The user ID to subscribe to notifications for
+ * @param conversationId - The conversation ID to subscribe to
  * @param options - Callback options for insert/update/delete events
  * @returns Object with subscription status
  */
-export function useRealtimeNotifications(
-  userId: string | undefined,
-  options: UseRealtimeNotificationsOptions = {}
+export function useRealtimeMessages(
+  conversationId: string | undefined,
+  options: UseRealtimeMessagesOptions = {}
 ) {
   const { onInsert, onUpdate, onDelete, enabled = true } = options;
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -53,8 +52,8 @@ export function useRealtimeNotifications(
   }, [onInsert, onUpdate, onDelete]);
 
   useEffect(() => {
-    // Don't subscribe if no user ID or disabled
-    if (!userId || !enabled) {
+    // Don't subscribe if no conversation ID or disabled
+    if (!conversationId || !enabled) {
       return;
     }
 
@@ -65,76 +64,76 @@ export function useRealtimeNotifications(
 
     const supabase = getSupabaseClient();
 
-    // Create a unique channel name for this user's notifications
-    const channelName = `notifications:${userId}`;
+    // Create a unique channel name for this conversation's messages
+    const channelName = `messages:${conversationId}`;
 
-    // Subscribe to changes on the notifications table for this user
+    // Subscribe to changes on the direct_messages table for this conversation
     const channel = supabase
       .channel(channelName)
-      .on<RealtimeNotification>(
+      .on<RealtimeDirectMessage>(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
+          table: 'direct_messages',
+          filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload: RealtimePostgresChangesPayload<RealtimeNotification>) => {
+        (payload: RealtimePostgresChangesPayload<RealtimeDirectMessage>) => {
           if (payload.new && onInsertRef.current) {
-            onInsertRef.current(payload.new as RealtimeNotification);
+            onInsertRef.current(payload.new as RealtimeDirectMessage);
           }
         }
       )
-      .on<RealtimeNotification>(
+      .on<RealtimeDirectMessage>(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
+          table: 'direct_messages',
+          filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload: RealtimePostgresChangesPayload<RealtimeNotification>) => {
+        (payload: RealtimePostgresChangesPayload<RealtimeDirectMessage>) => {
           if (payload.new && onUpdateRef.current) {
-            onUpdateRef.current(payload.new as RealtimeNotification);
+            onUpdateRef.current(payload.new as RealtimeDirectMessage);
           }
         }
       )
-      .on<RealtimeNotification>(
+      .on<RealtimeDirectMessage>(
         'postgres_changes',
         {
           event: 'DELETE',
           schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
+          table: 'direct_messages',
+          filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload: RealtimePostgresChangesPayload<RealtimeNotification>) => {
+        (payload: RealtimePostgresChangesPayload<RealtimeDirectMessage>) => {
           if (payload.old && onDeleteRef.current) {
-            onDeleteRef.current({ id: (payload.old as RealtimeNotification).id });
+            onDeleteRef.current({ id: (payload.old as RealtimeDirectMessage).id });
           }
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true;
-          console.log('[Realtime] Subscribed to notifications');
+          console.log('[Realtime] Subscribed to messages:', conversationId);
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Realtime] Channel error for notifications');
+          console.error('[Realtime] Channel error for messages');
           isSubscribedRef.current = false;
         }
       });
 
     channelRef.current = channel;
 
-    // Cleanup on unmount or when userId changes
+    // Cleanup on unmount or when conversationId changes
     return () => {
       if (channelRef.current) {
-        console.log('[Realtime] Unsubscribing from notifications');
+        console.log('[Realtime] Unsubscribing from messages');
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
         isSubscribedRef.current = false;
       }
     };
-  }, [userId, enabled]);
+  }, [conversationId, enabled]);
 
   // Manual unsubscribe function
   const unsubscribe = useCallback(() => {
@@ -152,4 +151,4 @@ export function useRealtimeNotifications(
   };
 }
 
-export default useRealtimeNotifications;
+export default useRealtimeMessages;

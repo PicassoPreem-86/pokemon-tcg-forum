@@ -38,7 +38,7 @@ export interface Notification {
   id: string;
   user_id: string;
   actor_id: string | null;
-  type: 'reply' | 'mention' | 'like' | 'follow' | 'badge';
+  type: 'reply' | 'mention' | 'like' | 'follow' | 'badge' | 'message';
   message: string;
   link: string | null;
   is_read: boolean;
@@ -303,4 +303,62 @@ export interface ContentStats {
 export interface ContentActionResult {
   success: boolean;
   error?: string;
+}
+
+// ============================================
+// Direct Message Types
+// ============================================
+
+export interface DirectMessageResult {
+  success: boolean;
+  error?: string;
+  messageId?: string;
+  conversationId?: string;
+}
+
+export interface DirectMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  is_read: boolean;
+  deleted_at: string | null;
+  created_at: string;
+  sender?: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+export interface Conversation {
+  id: string;
+  participant_one: string;
+  participant_two: string;
+  last_message_at: string;
+  created_at: string;
+  // Joined data for display
+  other_user?: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+  last_message?: {
+    content: string;
+    sender_id: string;
+    created_at: string;
+  };
+  unread_count?: number;
+}
+
+export interface BlockUserResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface GetMessagesFilters {
+  conversationId: string;
+  limit?: number;
+  before?: string; // For pagination - get messages before this timestamp
 }

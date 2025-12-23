@@ -14,13 +14,14 @@ import {
   MessageSquare,
   Heart,
   Bookmark,
-  Bell
+  Bell,
+  Mail
 } from 'lucide-react';
 import { useAuth, useRealtimeNotifications } from '@/lib/hooks';
 import type { RealtimeNotification } from '@/lib/hooks';
 import { signOut } from '@/lib/actions/auth';
 import { getTrainerRank } from '@/lib/trainer-ranks';
-import { getUnreadCount } from '@/lib/actions';
+import { getUnreadCount, getUnreadMessageCount } from '@/lib/actions';
 import { showNotificationToast } from '@/lib/toast-store';
 
 // Role badge configuration
@@ -36,6 +37,7 @@ export default function UserMenu() {
   const { user, isAuthenticated, isHydrated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -62,21 +64,25 @@ export default function UserMenu() {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
-  // Fetch unread notification count on mount
+  // Fetch unread notification and message counts on mount
   useEffect(() => {
-    async function fetchUnreadCount() {
+    async function fetchUnreadCounts() {
       if (!isAuthenticated || !user) return;
 
       try {
-        const count = await getUnreadCount();
-        setUnreadCount(count);
+        const [notifCount, msgCount] = await Promise.all([
+          getUnreadCount(),
+          getUnreadMessageCount(),
+        ]);
+        setUnreadCount(notifCount);
+        setUnreadMessageCount(msgCount);
       } catch (error) {
-        console.error('Error fetching unread count:', error);
+        console.error('Error fetching unread counts:', error);
       }
     }
 
     if (isHydrated && isAuthenticated && user) {
-      fetchUnreadCount();
+      fetchUnreadCounts();
     }
   }, [isHydrated, isAuthenticated, user]);
 
@@ -84,6 +90,11 @@ export default function UserMenu() {
   const handleNewNotification = React.useCallback((notification: RealtimeNotification) => {
     // Increment unread count
     setUnreadCount((prev) => prev + 1);
+
+    // If it's a message notification, also increment message count
+    if (notification.type === 'message') {
+      setUnreadMessageCount((prev) => prev + 1);
+    }
 
     // Show toast notification
     showNotificationToast(notification.message, notification.type);
@@ -255,6 +266,17 @@ export default function UserMenu() {
             >
               <Heart size={18} />
               <span>Liked Posts</span>
+            </Link>
+            <Link
+              href="/messages"
+              className="user-menu-link"
+              onClick={() => setIsOpen(false)}
+            >
+              <Mail size={18} />
+              <span>Messages</span>
+              {unreadMessageCount > 0 && (
+                <span className="user-menu-notification-badge">{unreadMessageCount}</span>
+              )}
             </Link>
             <Link
               href="/notifications"

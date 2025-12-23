@@ -75,13 +75,14 @@ export function showWarningToast(title: string, message?: string) {
 }
 
 // Notification-specific toast helper
-export function showNotificationToast(message: string, type: 'reply' | 'mention' | 'like' | 'follow' | 'badge') {
+export function showNotificationToast(message: string, type: 'reply' | 'mention' | 'like' | 'follow' | 'badge' | 'message') {
   const titles: Record<string, string> = {
     reply: 'New Reply',
     mention: 'You were mentioned',
     like: 'New Like',
     follow: 'New Follower',
     badge: 'Badge Earned',
+    message: 'New Message',
   };
   useToastStore.getState().addToast({
     type: 'info',

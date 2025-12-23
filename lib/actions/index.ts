@@ -5,3 +5,4 @@ export * from './replies';
 export * from './bookmarks';
 export * from './notifications';
 export * from './admin';
+export * from './direct-messages';
