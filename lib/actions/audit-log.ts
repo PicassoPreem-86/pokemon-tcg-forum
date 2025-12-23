@@ -160,7 +160,7 @@ export async function getAdminAuditHistory(
   });
 
   if (!result.success) {
-    return result;
+    return { success: false, error: result.error };
   }
 
   return {
@@ -186,7 +186,7 @@ export async function searchAuditLogsByAction(
   });
 
   if (!result.success) {
-    return result;
+    return { success: false, error: result.error };
   }
 
   return {

@@ -10,6 +10,7 @@ const adminNavItems = [
   { name: 'Content', href: '/admin/content' },
   { name: 'Categories', href: '/admin/categories' },
   { name: 'Reports', href: '/admin/reports' },
+  { name: 'Audit Log', href: '/admin/audit-log' },
   { name: 'Analytics', href: '/admin/analytics' },
   { name: 'Settings', href: '/admin/settings' },
 ];

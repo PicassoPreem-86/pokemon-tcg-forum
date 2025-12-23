@@ -18,6 +18,7 @@ import {
   Bell,
   Menu,
   X,
+  FileText,
 } from 'lucide-react';
 import { signOut } from '@/lib/actions/auth';
 import type { Profile } from '@/lib/supabase/database.types';
@@ -29,6 +30,7 @@ const NAV_ICONS: Record<string, React.ElementType> = {
   'Content': MessageSquare,
   'Categories': FolderTree,
   'Reports': Flag,
+  'Audit Log': FileText,
   'Analytics': BarChart3,
   'Settings': Settings,
 };
