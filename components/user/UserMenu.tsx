@@ -16,10 +16,12 @@ import {
   Bookmark,
   Bell
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useRealtimeNotifications } from '@/lib/hooks';
+import type { RealtimeNotification } from '@/lib/hooks';
 import { signOut } from '@/lib/actions/auth';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 import { getUnreadCount } from '@/lib/actions';
+import { showNotificationToast } from '@/lib/toast-store';
 
 // Role badge configuration
 const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -60,7 +62,7 @@ export default function UserMenu() {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
-  // Fetch unread notification count
+  // Fetch unread notification count on mount
   useEffect(() => {
     async function fetchUnreadCount() {
       if (!isAuthenticated || !user) return;
@@ -75,12 +77,32 @@ export default function UserMenu() {
 
     if (isHydrated && isAuthenticated && user) {
       fetchUnreadCount();
-
-      // Poll for updates every 30 seconds
-      const interval = setInterval(fetchUnreadCount, 30000);
-      return () => clearInterval(interval);
     }
   }, [isHydrated, isAuthenticated, user]);
+
+  // Handle new notification from realtime subscription
+  const handleNewNotification = React.useCallback((notification: RealtimeNotification) => {
+    // Increment unread count
+    setUnreadCount((prev) => prev + 1);
+
+    // Show toast notification
+    showNotificationToast(notification.message, notification.type);
+  }, []);
+
+  // Handle notification marked as read
+  const handleNotificationUpdate = React.useCallback((notification: RealtimeNotification) => {
+    if (notification.is_read) {
+      // Decrement unread count when marked as read
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+  }, []);
+
+  // Subscribe to real-time notification updates
+  useRealtimeNotifications(user?.id, {
+    onInsert: handleNewNotification,
+    onUpdate: handleNotificationUpdate,
+    enabled: isHydrated && isAuthenticated && !!user,
+  });
 
   const handleLogout = async () => {
     setIsOpen(false);

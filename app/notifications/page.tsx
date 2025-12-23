@@ -14,7 +14,8 @@ import {
   CheckCheck,
   Trash2,
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useRealtimeNotifications } from '@/lib/hooks';
+import type { RealtimeNotification } from '@/lib/hooks';
 import {
   getUserNotifications,
   markAsRead,
@@ -60,6 +61,41 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+  // Handle new notification from realtime subscription
+  const handleNewNotification = React.useCallback((notification: RealtimeNotification) => {
+    // Add new notification to the top of the list
+    setNotifications(prev => [{
+      id: notification.id,
+      user_id: notification.user_id,
+      actor_id: notification.actor_id,
+      type: notification.type,
+      message: notification.message,
+      link: notification.link,
+      is_read: notification.is_read,
+      created_at: notification.created_at,
+    }, ...prev]);
+  }, []);
+
+  // Handle notification update (e.g., marked as read)
+  const handleNotificationUpdate = React.useCallback((notification: RealtimeNotification) => {
+    setNotifications(prev =>
+      prev.map(n => n.id === notification.id ? { ...n, is_read: notification.is_read } : n)
+    );
+  }, []);
+
+  // Handle notification delete
+  const handleNotificationDelete = React.useCallback(({ id }: { id: string }) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  // Subscribe to real-time notification updates
+  useRealtimeNotifications(user?.id, {
+    onInsert: handleNewNotification,
+    onUpdate: handleNotificationUpdate,
+    onDelete: handleNotificationDelete,
+    enabled: isHydrated && isAuthenticated && !!user,
+  });
 
   // Redirect if not authenticated
   useEffect(() => {
