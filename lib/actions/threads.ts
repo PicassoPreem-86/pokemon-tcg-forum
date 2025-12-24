@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { Thread, Profile } from '@/lib/supabase/database.types';
 import { sanitizeHtml, createSafeExcerpt } from '@/lib/sanitize';
@@ -89,9 +89,10 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
   const sanitizedContent = sanitizeHtml(content.trim());
   const excerpt = createSafeExcerpt(sanitizedContent, 200);
 
-  // Create the thread
+  // Create the thread using admin client (bypasses RLS since user is already verified)
+  const adminClient = createAdminClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: thread, error } = await (supabase as any)
+  const { data: thread, error } = await (adminClient as any)
     .from('threads')
     .insert({
       slug,
@@ -117,7 +118,7 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
     }));
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from('thread_tags').insert(tagInserts);
+    await (adminClient as any).from('thread_tags').insert(tagInserts);
   }
 
   // Process @mentions in the thread content

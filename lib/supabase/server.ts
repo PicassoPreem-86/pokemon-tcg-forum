@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import type { Database } from './database.types';
 
@@ -71,4 +72,26 @@ export async function createActionClient() {
       },
     }
   );
+}
+
+// Admin client with service role - bypasses RLS
+// IMPORTANT: Only use this for server-side operations where user has been verified
+export function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('Missing Supabase admin configuration:', {
+      hasUrl: !!supabaseUrl,
+      hasServiceKey: !!serviceRoleKey,
+    });
+    throw new Error('Supabase admin configuration is missing. Please check environment variables.');
+  }
+
+  return createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
