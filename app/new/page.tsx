@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FileText,
   Tag,
@@ -24,31 +24,67 @@ import {
   Loader2
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
-import { useAuthStore } from '@/lib/auth-store';
-import { useThreadStore } from '@/lib/thread-store';
-import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
+import { useAuth } from '@/lib/hooks';
+import { createThread } from '@/lib/actions/threads';
 import { sanitizeHtml } from '@/lib/sanitize';
 
+// Loading component for Suspense fallback
+function NewThreadLoading() {
+  return (
+    <div className="new-thread-page">
+      <div className="new-thread-header">
+        <Link href="/" className="btn btn-ghost">
+          <ArrowLeft size={18} />
+          Back
+        </Link>
+        <h1>
+          <FileText size={24} />
+          Create New Thread
+        </h1>
+      </div>
+      <div className="auth-required-card">
+        <Loader2 size={48} className="spin" style={{ color: '#9333ea' }} />
+        <p>Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main page component wrapped in Suspense
 export default function NewThreadPage() {
+  return (
+    <Suspense fallback={<NewThreadLoading />}>
+      <NewThreadContent />
+    </Suspense>
+  );
+}
+
+// Inner component that uses useSearchParams
+function NewThreadContent() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
-  const { createThread } = useThreadStore();
+  const searchParams = useSearchParams();
+  const { user, isAuthenticated, isHydrated, isLoading } = useAuth();
+
+  // Get pre-selected category from URL if provided
+  const preSelectedCategory = searchParams.get('category') || '';
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(preSelectedCategory);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isPreview, setIsPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; content?: string; category?: string }>({});
-  const [isHydrated, setIsHydrated] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  // Handle hydration for auth state
+  // Update category when URL param changes
   useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+    if (preSelectedCategory) {
+      setSelectedCategory(preSelectedCategory);
+    }
+  }, [preSelectedCategory]);
 
   const handleAddTag = () => {
     const trimmedTag = tagInput.trim().toLowerCase();
@@ -147,45 +183,69 @@ export default function NewThreadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError(null);
 
     if (!validateForm()) return;
 
     if (!isAuthenticated || !user) {
-      showErrorToast('Not logged in', 'You must be logged in to create a thread');
+      setServerError('You must be logged in to create a thread');
       return;
     }
 
     setIsSubmitting(true);
 
-    // Small delay for UX
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // Call the server action to create the thread
+      const result = await createThread({
+        title: title.trim(),
+        content: content.trim(),
+        categoryId: selectedCategory,
+        tags: tags,
+      });
 
-    // Create the thread
-    const newThread = createThread({
-      title: title.trim(),
-      content: content.trim(),
-      categoryId: selectedCategory,
-      tags: tags,
-    });
-
-    if (newThread) {
-      setIsSuccess(true);
-      showSuccessToast('Thread created!', 'Redirecting to your new thread...');
-
-      // Redirect to the new thread
-      setTimeout(() => {
-        router.push(`/thread/${newThread.slug}`);
-      }, 1000);
-    } else {
-      showErrorToast('Failed to create thread', 'Something went wrong. Please try again.');
+      if (result.success && result.threadSlug) {
+        setIsSuccess(true);
+        // Redirect to the new thread
+        setTimeout(() => {
+          router.push(`/thread/${result.threadSlug}`);
+        }, 1000);
+      } else {
+        setServerError(result.error || 'Failed to create thread. Please try again.');
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      console.error('Error creating thread:', error);
+      setServerError('An unexpected error occurred. Please try again.');
       setIsSubmitting(false);
     }
   };
 
   const selectedCategoryInfo = CATEGORIES.find(c => c.id === selectedCategory);
 
-  // Show login prompt if not authenticated (after hydration)
-  if (isHydrated && !isAuthenticated) {
+  // Show loading state while checking auth
+  if (!isHydrated || isLoading) {
+    return (
+      <div className="new-thread-page">
+        <div className="new-thread-header">
+          <Link href="/" className="btn btn-ghost">
+            <ArrowLeft size={18} />
+            Back
+          </Link>
+          <h1>
+            <FileText size={24} />
+            Create New Thread
+          </h1>
+        </div>
+        <div className="auth-required-card">
+          <Loader2 size={48} className="spin" style={{ color: '#9333ea' }} />
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
     return (
       <div className="new-thread-page">
         <div className="new-thread-header">
@@ -236,10 +296,28 @@ export default function NewThreadPage() {
         </h1>
         {user && (
           <div className="new-thread-user">
-            Posting as <strong>{user.displayName || user.username}</strong>
+            Posting as <strong>{user.display_name || user.username}</strong>
           </div>
         )}
       </div>
+
+      {/* Server Error Display */}
+      {serverError && (
+        <div className="form-error-banner" style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#ef4444'
+        }}>
+          <AlertCircle size={18} />
+          <span>{serverError}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="new-thread-form">
         {/* Category Selection */}
