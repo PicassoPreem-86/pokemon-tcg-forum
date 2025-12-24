@@ -23,7 +23,8 @@ import {
   FileText,
   Shield,
   ChevronRight,
-  Pin
+  Pin,
+  PenSquare
 } from 'lucide-react';
 import { CATEGORIES, LATEST_THREADS, FORUM_STATS, ONLINE_USERS, formatNumber, Thread as HomeThread } from '@/lib/categories';
 import { useThreadStore, UserThread } from '@/lib/thread-store';
@@ -137,6 +138,15 @@ export default function HomePage() {
             />
           </Link>
         </div>
+
+        {/* New Thread Button - Prominent CTA */}
+        <Link
+          href="/new"
+          className="flex items-center justify-center gap-2 mx-4 mb-4 px-4 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-medium rounded-lg transition-all"
+        >
+          <PenSquare className="w-5 h-5" />
+          New Thread
+        </Link>
 
         <nav className="sidebar-nav">
           <Link href="/" className="sidebar-nav-item active">

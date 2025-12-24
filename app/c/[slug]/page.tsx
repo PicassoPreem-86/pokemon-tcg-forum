@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getCategoryBySlug } from '@/lib/categories';
 import { getThreadsByCategory } from '@/lib/mock-data/threads';
-import { MessageSquare, Star, TrendingUp, Award, BookOpen, Newspaper, ArrowLeftRight } from 'lucide-react';
+import { MessageSquare, Star, TrendingUp, Award, BookOpen, Newspaper, ArrowLeftRight, PenSquare } from 'lucide-react';
 import CategoryThreadList from '@/components/forum/CategoryThreadList';
 
 const iconMap = {
@@ -70,25 +70,34 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         </div>
       </div>
 
-      {/* Sort Tabs */}
-      <div className="sort-tabs">
+      {/* Sort Tabs and New Thread Button */}
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="sort-tabs mb-0">
+          <Link
+            href={`/c/${slug}?sort=latest`}
+            className={`sort-tab ${sortBy === 'latest' ? 'active' : ''}`}
+          >
+            Latest
+          </Link>
+          <Link
+            href={`/c/${slug}?sort=hot`}
+            className={`sort-tab ${sortBy === 'hot' ? 'active' : ''}`}
+          >
+            Hot
+          </Link>
+          <Link
+            href={`/c/${slug}?sort=top`}
+            className={`sort-tab ${sortBy === 'top' ? 'active' : ''}`}
+          >
+            Top
+          </Link>
+        </div>
         <Link
-          href={`/c/${slug}?sort=latest`}
-          className={`sort-tab ${sortBy === 'latest' ? 'active' : ''}`}
+          href={`/new?category=${category.id}`}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-sm font-medium rounded-lg transition-all whitespace-nowrap"
         >
-          Latest
-        </Link>
-        <Link
-          href={`/c/${slug}?sort=hot`}
-          className={`sort-tab ${sortBy === 'hot' ? 'active' : ''}`}
-        >
-          Hot
-        </Link>
-        <Link
-          href={`/c/${slug}?sort=top`}
-          className={`sort-tab ${sortBy === 'top' ? 'active' : ''}`}
-        >
-          Top
+          <PenSquare className="h-4 w-4" />
+          <span>New Thread</span>
         </Link>
       </div>
 
