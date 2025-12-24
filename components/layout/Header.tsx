@@ -103,10 +103,14 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
               {isHydrated && isAuthenticated && (
                 <Link
                   href="/new"
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-sm font-medium rounded-lg transition-all"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all"
+                  style={{
+                    background: 'linear-gradient(to right, #7c3aed, #9333ea)',
+                    color: '#ffffff',
+                  }}
                 >
-                  <PenSquare className="h-4 w-4" />
-                  <span>New Thread</span>
+                  <PenSquare className="h-4 w-4" style={{ color: '#ffffff' }} />
+                  <span style={{ color: '#ffffff' }}>New Thread</span>
                 </Link>
               )}
 

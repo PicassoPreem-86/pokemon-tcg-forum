@@ -142,10 +142,14 @@ export default function HomePage() {
         {/* New Thread Button - Prominent CTA */}
         <Link
           href="/new"
-          className="flex items-center justify-center gap-2 mx-4 mb-4 px-4 py-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-medium rounded-lg transition-all"
+          className="flex items-center justify-center gap-2 mx-4 mb-4 px-4 py-3 font-medium rounded-lg transition-all"
+          style={{
+            background: 'linear-gradient(to right, #7c3aed, #9333ea)',
+            color: '#ffffff',
+          }}
         >
-          <PenSquare className="w-5 h-5" />
-          New Thread
+          <PenSquare className="w-5 h-5" style={{ color: '#ffffff' }} />
+          <span style={{ color: '#ffffff' }}>New Thread</span>
         </Link>
 
         <nav className="sidebar-nav">
