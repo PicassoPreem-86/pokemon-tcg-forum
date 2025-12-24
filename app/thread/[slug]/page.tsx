@@ -33,6 +33,7 @@ import {
 import { getThreadBySlug, isUserThread, useThreadStore } from '@/lib/thread-store';
 import { useReplyStore, Reply as ReplyType, ReplyImage } from '@/lib/reply-store';
 import { useAuthStore, useAuthStateAfterHydration } from '@/lib/auth-store';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 import { formatNumber } from '@/lib/categories';
@@ -1341,6 +1342,9 @@ export default function ThreadBySlugPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuthStore();
 
+  // Thread loading state for Supabase fetch
+  const [isLoadingThread, setIsLoadingThread] = useState(!thread);
+
   // Thread edit/delete state
   const [isEditingThread, setIsEditingThread] = useState(false);
   const [editTitle, setEditTitle] = useState(thread?.title || '');
@@ -1387,16 +1391,85 @@ export default function ThreadBySlugPage() {
     setQuotedContent(undefined);
   };
 
-  // Refresh thread data when needed
+  // Refresh thread data when needed - check local store first, then Supabase
   useEffect(() => {
-    const currentThread = getThread(slug);
-    if (currentThread) {
-      setThread(currentThread);
-      setEditTitle(currentThread.title);
-      if (isUserThread(currentThread)) {
-        setEditContent(currentThread.content);
+    const fetchThread = async () => {
+      // First, try local store (user-created threads and mock data)
+      const localThread = getThread(slug);
+      if (localThread) {
+        setThread(localThread);
+        setEditTitle(localThread.title);
+        if (isUserThread(localThread)) {
+          setEditContent(localThread.content);
+        }
+        setIsLoadingThread(false);
+        return;
       }
-    }
+
+      // If not found locally, fetch from Supabase
+      setIsLoadingThread(true);
+      try {
+        const supabase = getSupabaseClient();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any)
+          .from('threads')
+          .select(`
+            *,
+            author:profiles!threads_author_id_fkey(
+              id, username, display_name, avatar_url, role, created_at, post_count, reputation
+            ),
+            category:categories!threads_category_id_fkey(slug)
+          `)
+          .eq('slug', slug)
+          .single();
+
+        if (error || !data) {
+          console.error('[ThreadPage] Supabase fetch error:', error);
+          setIsLoadingThread(false);
+          return;
+        }
+
+        // Transform Supabase data to match our Thread type
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const threadData = data as any;
+        const supabaseThread = {
+          id: threadData.id,
+          slug: threadData.slug,
+          title: threadData.title,
+          content: threadData.content || '',
+          categoryId: threadData.category?.slug || threadData.category_id,
+          authorId: threadData.author_id,
+          author: {
+            id: threadData.author?.id || threadData.author_id,
+            username: threadData.author?.username || 'Unknown',
+            displayName: threadData.author?.display_name,
+            avatar: threadData.author?.avatar_url,
+            role: threadData.author?.role || 'member',
+            joinDate: threadData.author?.created_at || threadData.created_at,
+            postCount: threadData.author?.post_count || 0,
+            reputation: threadData.author?.reputation || 0,
+          },
+          createdAt: threadData.created_at,
+          updatedAt: threadData.updated_at || threadData.created_at,
+          postCount: threadData.reply_count || 0,
+          viewCount: threadData.view_count || 0,
+          isPinned: threadData.is_pinned || false,
+          isLocked: threadData.is_locked || false,
+          isHot: (threadData.view_count || 0) > 100,
+          excerpt: threadData.excerpt || '',
+        };
+
+        setThread(supabaseThread);
+        setEditTitle(supabaseThread.title);
+        setEditContent(supabaseThread.content);
+      } catch (err) {
+        console.error('[ThreadPage] Failed to fetch from Supabase:', err);
+      } finally {
+        setIsLoadingThread(false);
+      }
+    };
+
+    fetchThread();
   }, [slug, getThread, refreshKey]);
 
   // Check if user can edit/delete this thread
@@ -1498,6 +1571,18 @@ export default function ThreadBySlugPage() {
   const handleCancelDeleteThread = () => {
     setShowDeleteThreadConfirm(false);
   };
+
+  // Show loading state while fetching from Supabase
+  if (isLoadingThread) {
+    return (
+      <div className="content-container">
+        <div className="thread-loading" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <Loader2 className="animate-spin" size={48} style={{ margin: '0 auto 1rem', color: '#9333EA' }} />
+          <p style={{ color: '#9CA3AF' }}>Loading thread...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!thread) {
     return (
