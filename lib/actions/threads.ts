@@ -69,6 +69,20 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
     return { success: false, error: 'Category is required' };
   }
 
+  // Look up category UUID by slug (frontend sends slug like 'general', db uses UUID)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: category, error: categoryError } = await (supabase as any)
+    .from('categories')
+    .select('id')
+    .eq('slug', categoryId)
+    .single() as { data: { id: string } | null; error: Error | null };
+
+  if (categoryError || !category) {
+    console.error('Category lookup error:', categoryError);
+    return { success: false, error: 'Invalid category selected' };
+  }
+
+  const categoryUUID = category.id;
   const slug = generateSlug(title);
 
   // SECURITY: Sanitize HTML content to prevent XSS attacks
@@ -84,7 +98,7 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
       title: title.trim(),
       content: sanitizedContent,
       excerpt,
-      category_id: categoryId,
+      category_id: categoryUUID,
       author_id: user.id,
     })
     .select()
