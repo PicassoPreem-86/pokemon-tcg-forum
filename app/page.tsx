@@ -209,6 +209,17 @@ export default function HomePage() {
           </form>
 
           <div className="header-actions">
+            <Link
+              href="/new"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all"
+              style={{
+                background: 'linear-gradient(to right, #7c3aed, #9333ea)',
+                color: '#ffffff',
+              }}
+            >
+              <PenSquare className="h-4 w-4" />
+              <span>New Thread</span>
+            </Link>
             <UserMenu />
           </div>
         </header>
