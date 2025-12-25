@@ -14,7 +14,7 @@ import {
   PenSquare,
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
-import { initializeDemoAccount, useAuthStore } from '@/lib/auth-store';
+import { initializeDemoAccount } from '@/lib/auth-store';
 
 // Dynamic imports for components not needed on initial render
 const MobileMenu = dynamic(() => import('@/components/layout/MobileMenu'), {
@@ -33,7 +33,6 @@ export default function ForumLayout({ children }: ForumLayoutProps) {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { isAuthenticated, isHydrated } = useAuthStore();
 
   const handleMenuToggle = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -127,19 +126,17 @@ export default function ForumLayout({ children }: ForumLayoutProps) {
           </form>
 
           <div className="header-actions">
-            {isHydrated && isAuthenticated && (
-              <Link
-                href="/new"
-                className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all"
-                style={{
-                  background: 'linear-gradient(to right, #7c3aed, #9333ea)',
-                  color: '#ffffff',
-                }}
-              >
-                <PenSquare className="h-4 w-4" />
-                <span>New Thread</span>
-              </Link>
-            )}
+            <Link
+              href="/new"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all"
+              style={{
+                background: 'linear-gradient(to right, #7c3aed, #9333ea)',
+                color: '#ffffff',
+              }}
+            >
+              <PenSquare className="h-4 w-4" />
+              <span>New Thread</span>
+            </Link>
             <UserMenu />
           </div>
         </header>
