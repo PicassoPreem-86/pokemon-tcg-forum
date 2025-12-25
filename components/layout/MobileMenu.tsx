@@ -97,21 +97,19 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             <span>Search topics, posts, users...</span>
           </Link>
 
-          {/* New Thread Button - Only for authenticated users */}
-          {isHydrated && isAuthenticated && (
-            <Link
-              href="/new"
-              className="flex items-center gap-3 px-4 py-3 font-medium rounded-lg transition-all"
-              style={{
-                background: 'linear-gradient(to right, #7c3aed, #9333ea)',
-                color: '#ffffff',
-              }}
-              onClick={onClose}
-            >
-              <PenSquare className="w-5 h-5" style={{ color: '#ffffff' }} />
-              <span style={{ color: '#ffffff' }}>New Thread</span>
-            </Link>
-          )}
+          {/* New Thread Button - Visible for all users */}
+          <Link
+            href="/new"
+            className="flex items-center justify-center gap-3 px-4 py-3 font-medium rounded-lg transition-all"
+            style={{
+              background: 'linear-gradient(to right, #7c3aed, #9333ea)',
+              color: '#ffffff',
+            }}
+            onClick={onClose}
+          >
+            <PenSquare className="w-5 h-5" style={{ color: '#ffffff' }} />
+            <span style={{ color: '#ffffff' }}>New Thread</span>
+          </Link>
 
           {/* Quick Links */}
           <div className="mobile-menu-section">
