@@ -1344,6 +1344,8 @@ export default function ThreadBySlugPage() {
 
   // Thread loading state for Supabase fetch
   const [isLoadingThread, setIsLoadingThread] = useState(!thread);
+  // Error state for graceful error display
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Thread edit/delete state
   const [isEditingThread, setIsEditingThread] = useState(false);
@@ -1408,6 +1410,11 @@ export default function ThreadBySlugPage() {
 
       // If not found locally, fetch from Supabase
       setIsLoadingThread(true);
+      setFetchError(null);
+
+      // Small delay to ensure database write is committed (helps with race conditions after thread creation)
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       try {
         const supabase = getSupabaseClient();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1425,6 +1432,8 @@ export default function ThreadBySlugPage() {
 
         if (error || !data) {
           console.error('[ThreadPage] Supabase fetch error:', error);
+          // If thread not found, it might just need more time - show a retry option
+          setFetchError(error?.message || 'Thread not found');
           setIsLoadingThread(false);
           return;
         }
@@ -1464,6 +1473,7 @@ export default function ThreadBySlugPage() {
         setEditContent(supabaseThread.content);
       } catch (err) {
         console.error('[ThreadPage] Failed to fetch from Supabase:', err);
+        setFetchError('Failed to load thread. Please try again.');
       } finally {
         setIsLoadingThread(false);
       }
@@ -1579,6 +1589,32 @@ export default function ThreadBySlugPage() {
         <div className="thread-loading" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <Loader2 className="animate-spin" size={48} style={{ margin: '0 auto 1rem', color: '#9333EA' }} />
           <p style={{ color: '#9CA3AF' }}>Loading thread...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state with retry option
+  if (fetchError && !thread) {
+    return (
+      <div className="content-container">
+        <div className="thread-not-found" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <h1 style={{ marginBottom: '1rem' }}>Unable to Load Thread</h1>
+          <p style={{ color: '#9CA3AF', marginBottom: '1.5rem' }}>{fetchError}</p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <button
+              onClick={() => setRefreshKey(prev => prev + 1)}
+              className="btn btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <Loader2 size={16} />
+              Try Again
+            </button>
+            <Link href="/" className="btn btn-secondary">
+              <ArrowLeft size={16} />
+              Back to Home
+            </Link>
+          </div>
         </div>
       </div>
     );

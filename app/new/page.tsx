@@ -205,10 +205,12 @@ function NewThreadContent() {
 
       if (result.success && result.threadSlug) {
         setIsSuccess(true);
-        // Redirect to the new thread
+        // Redirect to the new thread after a brief delay to ensure DB write is complete
+        // Use replace instead of push to prevent back-button issues
         setTimeout(() => {
-          router.push(`/thread/${result.threadSlug}`);
-        }, 1000);
+          // Use window.location for a full page navigation to avoid client-side hydration issues
+          window.location.href = `/thread/${result.threadSlug}`;
+        }, 1500);
       } else {
         setServerError(result.error || 'Failed to create thread. Please try again.');
         setIsSubmitting(false);
