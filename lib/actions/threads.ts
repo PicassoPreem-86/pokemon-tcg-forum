@@ -165,7 +165,7 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
   revalidatePath('/');
   revalidatePath(`/c/${categoryId}`);
 
-  return { success: true, threadSlug: thread?.slug };
+  return { success: true, threadSlug: thread?.slug, threadId: thread?.id };
 }
 
 interface UpdateThreadData {

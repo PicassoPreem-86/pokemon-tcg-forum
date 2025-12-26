@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Heart,
   Quote,
   Reply,
   Edit2,
@@ -26,6 +25,7 @@ import { useAuthStore } from '@/lib/auth-store';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
 import { getTrainerRank } from '@/lib/trainer-ranks';
 import RichContent from './RichContent';
+import { ReactionDisplay } from './Reactions';
 
 // Role badge colors and icons
 const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -189,8 +189,6 @@ export function NestedReplyCard({
   onReplyTo,
   onDeleted
 }: NestedReplyCardProps) {
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(reply.content);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -201,7 +199,7 @@ export function NestedReplyCard({
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const { user } = useAuthStore();
-  const { likeReply, unlikeReply, editReply, deleteReply, getNestedReplies } = useReplyStore();
+  const { editReply, deleteReply, getNestedReplies } = useReplyStore();
   const trainerRank = getTrainerRank(reply.author.postCount);
   const roleInfo = roleConfig[reply.author.role] || roleConfig.member;
 
@@ -212,34 +210,6 @@ export function NestedReplyCard({
   // Check if current user owns this reply
   const isOwner = user && user.id === reply.author.id;
   const canModerate = user && (user.role === 'admin' || user.role === 'moderator');
-
-  // Sync like count after hydration to avoid mismatch
-  React.useEffect(() => {
-    setLikeCount(reply.likes);
-  }, [reply.likes]);
-
-  // Check if current user has liked this reply
-  React.useEffect(() => {
-    if (user && reply.likedBy.includes(user.id)) {
-      setLiked(true);
-    }
-  }, [user, reply.likedBy]);
-
-  const handleLike = () => {
-    if (!user) return;
-
-    if (liked) {
-      if (unlikeReply(reply.id)) {
-        setLikeCount(likeCount - 1);
-        setLiked(false);
-      }
-    } else {
-      if (likeReply(reply.id)) {
-        setLikeCount(likeCount + 1);
-        setLiked(true);
-      }
-    }
-  };
 
   const handleEdit = () => {
     setEditContent(reply.content);
@@ -449,13 +419,11 @@ export function NestedReplyCard({
         {/* Reply Actions */}
         {!isEditing && !showDeleteConfirm && (
           <div className="nested-reply-actions">
-            <button
-              className={`action-btn ${liked ? 'liked' : ''}`}
-              onClick={handleLike}
-            >
-              <Heart size={14} fill={liked ? 'currentColor' : 'none'} />
-              {likeCount > 0 && <span>{likeCount}</span>}
-            </button>
+            <ReactionDisplay
+              contentId={`reply-${reply.id}`}
+              compact={true}
+              className="nested-reactions"
+            />
 
             {depth < maxDepth && (
               <button className="action-btn" onClick={handleReplyTo}>

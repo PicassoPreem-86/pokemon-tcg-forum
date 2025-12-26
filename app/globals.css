@@ -3004,6 +3004,265 @@ a:hover {
   cursor: not-allowed;
 }
 
+/* Pin Button Icon Variant */
+.pin-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pin-btn-icon:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.pin-btn-icon.pinned {
+  color: #A855F7;
+}
+
+.pin-btn-icon.pinned:hover {
+  background: rgba(168, 85, 247, 0.1);
+  color: #C084FC;
+}
+
+.pin-btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Pin Button in Post Actions */
+.post-action-btn.pinned {
+  color: #A855F7;
+}
+
+.post-action-btn.pinned:hover {
+  background: rgba(168, 85, 247, 0.1);
+  color: #C084FC;
+}
+
+/* ==========================================
+   REACTION SYSTEM STYLES
+   ========================================== */
+
+/* Reaction Display Container */
+.reaction-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reaction-display.compact {
+  gap: 4px;
+}
+
+/* Reaction Badges (existing reactions) */
+.reaction-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.reaction-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reaction-badge:hover {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-hover);
+  transform: scale(1.05);
+}
+
+.reaction-badge.user-reacted {
+  background: rgba(147, 51, 234, 0.15);
+  border-color: rgba(147, 51, 234, 0.4);
+}
+
+.reaction-badge.user-reacted:hover {
+  background: rgba(147, 51, 234, 0.25);
+}
+
+.reaction-badge:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.reaction-badge:disabled:hover {
+  transform: none;
+}
+
+.reaction-badge .reaction-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.reaction-badge .reaction-count {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.reaction-badge.user-reacted .reaction-count {
+  color: #a855f7;
+}
+
+/* Reaction Picker */
+.reaction-picker-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.reaction-picker-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reaction-picker-btn:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.reaction-picker-btn.has-reaction {
+  background: rgba(147, 51, 234, 0.1);
+  border-color: rgba(147, 51, 234, 0.3);
+}
+
+.reaction-picker-btn.has-reaction:hover {
+  background: rgba(147, 51, 234, 0.2);
+}
+
+.reaction-picker-btn.with-reactions {
+  padding: 4px 8px;
+}
+
+.reaction-picker-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reaction-picker-btn .current-reaction {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Reaction Picker Dropdown */
+.reaction-picker-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  animation: reactionPickerIn 0.15s ease-out;
+}
+
+@keyframes reactionPickerIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.reaction-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.reaction-option:hover {
+  background: var(--color-bg-tertiary);
+  transform: scale(1.2);
+}
+
+.reaction-option.selected {
+  background: rgba(147, 51, 234, 0.2);
+}
+
+.reaction-option .reaction-emoji {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+
+.reaction-option:hover .reaction-emoji {
+  transform: scale(1.1);
+}
+
+/* Reaction Summary (for thread lists) */
+.reaction-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--color-bg-tertiary);
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.reaction-summary-emojis {
+  display: flex;
+  align-items: center;
+}
+
+.reaction-summary-emojis .summary-emoji {
+  font-size: 12px;
+  margin-right: -2px;
+}
+
+.reaction-summary-emojis .summary-emoji:last-child {
+  margin-right: 0;
+}
+
+.reaction-summary-count {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin-left: 2px;
+}
+
 /* Posts Pagination */
 .posts-pagination {
   display: flex;
@@ -3452,6 +3711,35 @@ a:hover {
 .format-btn:hover {
   background: var(--color-bg-elevated);
   color: var(--color-text-primary);
+}
+
+/* Draft indicator */
+.draft-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-tertiary);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.draft-indicator.saving {
+  color: var(--color-accent);
+}
+
+.draft-indicator.saved {
+  color: #10B981;
+}
+
+.draft-indicator svg {
+  flex-shrink: 0;
+}
+
+.draft-indicator .spin {
+  animation: spin 1s linear infinite;
 }
 
 .reply-submit {
@@ -10528,6 +10816,201 @@ a:hover {
   color: #F472B6;
 }
 
+/* Code Blocks */
+.code-block {
+  margin: 16px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #1a1b26;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.code-block-loading {
+  padding: 20px;
+  background: #1a1b26;
+  border-radius: 10px;
+  color: var(--color-text-muted);
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.code-block-lang {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.code-block-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.code-block-copy:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.code-block-copy svg {
+  width: 14px;
+  height: 14px;
+}
+
+.code-block-content {
+  display: flex;
+  overflow-x: auto;
+}
+
+.code-line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  padding-left: 16px;
+  padding-right: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+  text-align: right;
+  min-width: 40px;
+}
+
+.code-line-numbers span {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.code-block pre {
+  flex: 1;
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  background: transparent !important;
+}
+
+.code-block pre code {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #c0caf5;
+  background: transparent !important;
+  padding: 0 !important;
+  white-space: pre;
+}
+
+/* Prism.js Tokyo Night Theme */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #565f89;
+  font-style: italic;
+}
+
+.token.punctuation {
+  color: #9aa5ce;
+}
+
+.token.namespace {
+  opacity: 0.7;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+  color: #ff9e64;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+  color: #9ece6a;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #89ddff;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #bb9af7;
+}
+
+.token.function,
+.token.class-name {
+  color: #7aa2f7;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: #e0af68;
+}
+
+.token.important,
+.token.bold {
+  font-weight: bold;
+}
+
+.token.italic {
+  font-style: italic;
+}
+
+.token.entity {
+  cursor: help;
+}
+
+/* Scrollbar styling for code blocks */
+.code-block-content::-webkit-scrollbar {
+  height: 8px;
+}
+
+.code-block-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.code-block-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.code-block-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 /* Links */
 .rich-content .content-link {
   color: var(--color-accent);
@@ -13396,4 +13879,244 @@ a:hover {
 .message-textarea:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ============================================
+   Keyboard Shortcuts Styles
+   ============================================ */
+
+/* Shortcuts Help Modal */
+.shortcuts-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: shortcut-fade-in 0.15s ease-out;
+}
+
+@keyframes shortcut-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.shortcuts-modal {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: shortcut-slide-up 0.2s ease-out;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes shortcut-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.shortcuts-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shortcuts-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.shortcuts-modal-title svg {
+  color: var(--color-accent);
+}
+
+.shortcuts-modal-title h2 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.shortcuts-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.shortcuts-modal-close:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.shortcuts-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 640px) {
+  .shortcuts-modal-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shortcuts-category {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shortcuts-category-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shortcut-description {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.shortcut-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.shortcuts-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.shortcuts-tip {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.shortcuts-tip kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin: 0 4px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+/* Keyboard Combo Indicator */
+.keyboard-indicator {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 9998;
+  animation: indicator-pop 0.15s ease-out;
+}
+
+@keyframes indicator-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.keyboard-indicator kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 10px;
+  background: linear-gradient(135deg, var(--color-accent), #a855f7);
+  border-radius: 6px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.keyboard-indicator span {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* Thread card keyboard selection */
+[data-keyboard-selected="true"] {
+  scroll-margin: 100px;
 }

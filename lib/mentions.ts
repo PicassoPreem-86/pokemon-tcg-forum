@@ -76,3 +76,52 @@ export async function extractAndValidateMentions(content: string): Promise<Profi
 
   return validateMentions(usernames);
 }
+
+/**
+ * Search for users by username prefix for @mention autocomplete
+ * Returns up to 5 matching users, sorted by username
+ *
+ * @param query - The username prefix to search for (without @)
+ * @param excludeUserId - Optional user ID to exclude from results (e.g., current user)
+ * @returns Array of matching profiles with basic info
+ */
+export async function searchUsersForMention(
+  query: string,
+  excludeUserId?: string
+): Promise<Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>[]> {
+  if (!query || query.length < 1) {
+    return [];
+  }
+
+  // Limit query to prevent abuse
+  const sanitizedQuery = query.slice(0, 20).toLowerCase();
+
+  try {
+    const supabase = await createClient();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let queryBuilder = (supabase as any)
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .ilike('username', `${sanitizedQuery}%`)
+      .order('username')
+      .limit(5);
+
+    // Exclude current user if provided
+    if (excludeUserId) {
+      queryBuilder = queryBuilder.neq('id', excludeUserId);
+    }
+
+    const { data, error } = await queryBuilder;
+
+    if (error) {
+      console.error('[searchUsersForMention] Query error:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('[searchUsersForMention] Unexpected error:', error);
+    return [];
+  }
+}

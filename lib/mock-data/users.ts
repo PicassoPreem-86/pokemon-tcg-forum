@@ -20,6 +20,13 @@ export interface User {
   badges: UserBadge[];
   location?: string;
   bio?: string;
+  // Leaderboard stats
+  likesGiven?: number;
+  likesReceived?: number;
+  threadsCreated?: number;
+  daysVisited?: number;
+  topicsViewed?: number;
+  postsRead?: number;
 }
 
 export const MOCK_USERS: User[] = [
@@ -35,6 +42,12 @@ export const MOCK_USERS: User[] = [
     role: 'admin',
     location: 'Viridian City',
     bio: 'Passionate Pokemon TCG collector and competitive player. Specializing in Electric-type decks!',
+    likesGiven: 4521,
+    likesReceived: 8234,
+    threadsCreated: 342,
+    daysVisited: 892,
+    topicsViewed: 15234,
+    postsRead: 45678,
     badges: [
       {
         id: 'founder',
@@ -71,6 +84,12 @@ export const MOCK_USERS: User[] = [
     role: 'moderator',
     location: 'Pallet Town',
     bio: 'WOTC era collector. Base Set, Jungle, Fossil - those were the days!',
+    likesGiven: 3245,
+    likesReceived: 5892,
+    threadsCreated: 189,
+    daysVisited: 654,
+    topicsViewed: 12456,
+    postsRead: 34567,
     badges: [
       {
         id: 'moderator',
@@ -336,6 +355,29 @@ export const MOCK_USERS: User[] = [
   },
 ];
 
+// Add leaderboard stats to users that don't have them
+MOCK_USERS.forEach(user => {
+  if (!user.likesGiven) {
+    user.likesGiven = Math.floor(user.postCount * 0.3 + Math.random() * 500);
+  }
+  if (!user.likesReceived) {
+    user.likesReceived = Math.floor(user.reputation * 0.8 + Math.random() * 200);
+  }
+  if (!user.threadsCreated) {
+    user.threadsCreated = Math.floor(user.postCount * 0.05 + Math.random() * 20);
+  }
+  if (!user.daysVisited) {
+    const daysSinceJoin = Math.floor((Date.now() - new Date(user.joinDate).getTime()) / (1000 * 60 * 60 * 24));
+    user.daysVisited = Math.floor(daysSinceJoin * (0.3 + Math.random() * 0.5));
+  }
+  if (!user.topicsViewed) {
+    user.topicsViewed = Math.floor(user.postCount * 1.5 + Math.random() * 1000);
+  }
+  if (!user.postsRead) {
+    user.postsRead = Math.floor(user.postCount * 4 + Math.random() * 5000);
+  }
+});
+
 /**
  * Get user by username
  */
@@ -359,4 +401,51 @@ export function getUsersByUsernames(usernames: string[]): User[] {
  */
 export function getOnlineUsers(): User[] {
   return MOCK_USERS.filter(user => user.isOnline);
+}
+
+/**
+ * Leaderboard sort options
+ */
+export type LeaderboardSortKey =
+  | 'likesGiven'
+  | 'likesReceived'
+  | 'postCount'
+  | 'threadsCreated'
+  | 'topicsViewed'
+  | 'postsRead'
+  | 'daysVisited'
+  | 'reputation';
+
+/**
+ * Get users sorted by a specific metric for leaderboard
+ */
+export function getLeaderboard(sortBy: LeaderboardSortKey, limit: number = 50): User[] {
+  return [...MOCK_USERS]
+    .sort((a, b) => {
+      const aVal = a[sortBy] || 0;
+      const bVal = b[sortBy] || 0;
+      return bVal - aVal;
+    })
+    .slice(0, limit);
+}
+
+/**
+ * Get user's rank for a specific metric
+ */
+export function getUserRank(userId: string, sortBy: LeaderboardSortKey): number {
+  const sorted = getLeaderboard(sortBy, MOCK_USERS.length);
+  const index = sorted.findIndex(u => u.id === userId);
+  return index === -1 ? MOCK_USERS.length : index + 1;
+}
+
+/**
+ * Search users by username or display name
+ */
+export function searchUsers(query: string): User[] {
+  const lowerQuery = query.toLowerCase();
+  return MOCK_USERS.filter(
+    user =>
+      user.username.toLowerCase().includes(lowerQuery) ||
+      user.displayName.toLowerCase().includes(lowerQuery)
+  );
 }

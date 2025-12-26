@@ -24,10 +24,12 @@ import {
   Shield,
   ChevronRight,
   Pin,
-  PenSquare
+  PenSquare,
+  Hash
 } from 'lucide-react';
 import { CATEGORIES, LATEST_THREADS, FORUM_STATS, ONLINE_USERS, formatNumber, Thread as HomeThread } from '@/lib/categories';
 import { useThreadStore, UserThread } from '@/lib/thread-store';
+import { getPopularTags } from '@/lib/mock-data/threads';
 
 // Dynamic imports for components not needed on initial render
 const MobileMenu = dynamic(() => import('@/components/layout/MobileMenu'), {
@@ -395,6 +397,47 @@ export default function HomePage() {
                 </Link>
               ))}
               <span className="text-[#9CA3AF]">and {FORUM_STATS.onlineNow - ONLINE_USERS.length} more...</span>
+            </div>
+          </div>
+
+          {/* Popular Tags Widget */}
+          <div className="online-widget mt-6">
+            <div className="online-title flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-purple-400" />
+              Popular Tags
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {getPopularTags(12).map(({ tag, count }) => (
+                <Link
+                  key={tag}
+                  href={`/tag/${tag}`}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                  style={{
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    color: '#a78bfa',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(139, 92, 246, 0.2)';
+                    e.currentTarget.style.color = '#c4b5fd';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
+                    e.currentTarget.style.color = '#a78bfa';
+                  }}
+                >
+                  <Hash className="w-3 h-3" />
+                  {tag}
+                  <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>({count})</span>
+                </Link>
+              ))}
+            </div>
+            <div className="mt-3 text-center">
+              <Link
+                href="/categories"
+                className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+              >
+                View all tags →
+              </Link>
             </div>
           </div>
 

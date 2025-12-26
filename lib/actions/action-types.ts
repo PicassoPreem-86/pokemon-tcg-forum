@@ -68,6 +68,7 @@ export interface ThreadResult {
   success: boolean;
   error?: string;
   threadSlug?: string;
+  threadId?: string;
 }
 
 // ============================================

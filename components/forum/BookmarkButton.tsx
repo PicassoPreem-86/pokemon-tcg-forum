@@ -103,6 +103,7 @@ export default function BookmarkButton({
         title={bookmarked ? 'Remove bookmark' : 'Bookmark this thread'}
         disabled={isLoading || isCheckingStatus}
         aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark this thread'}
+        data-bookmark-button
       >
         {isLoading || isCheckingStatus ? (
           <Loader2 size={16} className="spin" />
@@ -119,6 +120,7 @@ export default function BookmarkButton({
       className={`post-action-btn ${bookmarked ? 'bookmarked' : ''} ${className}`}
       title={bookmarked ? 'Remove bookmark' : 'Bookmark this thread'}
       disabled={isLoading || isCheckingStatus}
+      data-bookmark-button
     >
       {isLoading || isCheckingStatus ? (
         <Loader2 size={16} className="spin" />

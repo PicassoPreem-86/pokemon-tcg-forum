@@ -11,11 +11,15 @@ import {
   Bell,
   Zap,
   PenSquare,
+  Trophy,
+  Eye,
+  Keyboard,
 } from 'lucide-react';
 import { NAV_ITEMS } from '@/lib/config';
 import { cn } from '@/lib/utils';
 import UserMenu from '@/components/user/UserMenu';
 import { useAuth } from '@/lib/hooks';
+import { useKeyboardShortcutsStore } from '@/lib/keyboard-shortcuts';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -27,6 +31,7 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { isAuthenticated, isHydrated } = useAuth();
+  const { setShowHelpModal } = useKeyboardShortcutsStore();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +154,16 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                 )}
               </div>
 
+              {/* Keyboard Shortcuts - Hidden on mobile */}
+              <button
+                onClick={() => setShowHelpModal(true)}
+                className="hidden sm:flex p-2 rounded-lg hover:bg-dark-800 transition-colors"
+                aria-label="Keyboard shortcuts"
+                title="Keyboard shortcuts (?)"
+              >
+                <Keyboard className="h-5 w-5 text-dark-300" />
+              </button>
+
               {/* Notifications - Only show when authenticated (after hydration) */}
               {isHydrated && isAuthenticated && (
                 <button
@@ -196,6 +211,22 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
               >
                 Members
               </Link>
+              <Link
+                href="/badges"
+                className="text-dark-400 hover:text-purple-400 transition-colors flex items-center gap-1"
+              >
+                <Trophy className="h-3.5 w-3.5" />
+                Badges
+              </Link>
+              {isHydrated && isAuthenticated && (
+                <Link
+                  href="/watching"
+                  className="text-dark-400 hover:text-purple-400 transition-colors flex items-center gap-1"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Watching
+                </Link>
+              )}
               <div className="flex-1" />
               <span className="text-dark-500">
                 <span className="text-purple-400 font-medium">2,847</span> collectors online

@@ -16,10 +16,12 @@ import {
   Users,
   Flame,
   Clock,
+  Eye,
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
 import { cn, formatNumber } from '@/lib/utils';
 import { Category } from '@/lib/categories';
+import { useAuth } from '@/lib/hooks';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowLeftRight,
@@ -40,6 +42,7 @@ interface SidebarProps {
 export default function Sidebar({ isOpen = true, onToggle, className }: SidebarProps) {
   const pathname = usePathname();
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const { isAuthenticated, isHydrated } = useAuth();
 
   const CategoryIcon = ({ iconName }: { iconName: string }) => {
     const Icon = iconMap[iconName] || MessageCircle;
@@ -114,6 +117,15 @@ export default function Sidebar({ isOpen = true, onToggle, className }: SidebarP
               <Flame className="h-4 w-4 text-orange-500" />
               <span className="text-sm">Trending</span>
             </Link>
+            {isHydrated && isAuthenticated && (
+              <Link
+                href="/watching"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-dark-300 hover:bg-dark-800 hover:text-white transition-colors"
+              >
+                <Eye className="h-4 w-4 text-purple-500" />
+                <span className="text-sm">Watching</span>
+              </Link>
+            )}
           </div>
 
           {/* Divider */}

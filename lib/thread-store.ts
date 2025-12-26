@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Thread } from './types';
 import { MOCK_THREADS } from './mock-data/threads';
 import { useAuthStore } from './auth-store';
+import { useBadgeStore } from './badge-store';
 
 // Thread creation data
 export interface CreateThreadData {
@@ -29,6 +30,9 @@ interface ThreadState {
   // User-created threads stored separately from mock data
   userThreads: UserThread[];
 
+  // Pinned mock thread IDs (since we can't modify mock data directly)
+  pinnedMockThreadIds: string[];
+
   // Actions
   createThread: (data: CreateThreadData) => UserThread | null;
   getThreadById: (id: string) => (Thread | UserThread) | undefined;
@@ -40,6 +44,8 @@ interface ThreadState {
   editThread: (threadId: string, data: EditThreadData) => boolean;
   deleteThread: (threadId: string) => boolean;
   getThreadContent: (threadId: string) => string | undefined;
+  togglePin: (threadId: string, verifiedRole?: 'admin' | 'moderator') => boolean;
+  isThreadPinned: (threadId: string) => boolean;
 }
 
 // Generate unique thread ID
@@ -63,6 +69,7 @@ export const useThreadStore = create<ThreadState>()(
   persist(
     (set, get) => ({
       userThreads: [],
+      pinnedMockThreadIds: [],
 
       createThread: (data: CreateThreadData) => {
         // Get current user from auth store
@@ -134,6 +141,11 @@ export const useThreadStore = create<ThreadState>()(
           postCount: (user.postCount || 0) + 1,
         });
 
+        // Award badges for thread creation
+        const badgeStore = useBadgeStore.getState();
+        badgeStore.incrementThreads();
+        badgeStore.incrementPosts();
+
         return newThread;
       },
 
@@ -160,33 +172,71 @@ export const useThreadStore = create<ThreadState>()(
       },
 
       getThreadsByCategory: (categoryId: string) => {
-        const { userThreads } = get();
+        const { userThreads, pinnedMockThreadIds } = get();
 
         // Combine user threads and mock threads
         const userCategoryThreads = userThreads.filter((t) => t.categoryId === categoryId);
         const mockCategoryThreads = MOCK_THREADS.filter((t) => t.categoryId === categoryId);
 
-        // Merge and sort by updatedAt (most recent first)
-        return [...userCategoryThreads, ...mockCategoryThreads].sort(
-          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
+        // Helper to check if thread is pinned
+        const isPinned = (thread: Thread | UserThread) => {
+          if ('content' in thread) {
+            return thread.isPinned || false;
+          }
+          return thread.isPinned || pinnedMockThreadIds.includes(thread.id);
+        };
+
+        // Merge and sort: pinned first, then by updatedAt
+        return [...userCategoryThreads, ...mockCategoryThreads].sort((a, b) => {
+          const aPinned = isPinned(a);
+          const bPinned = isPinned(b);
+          if (aPinned && !bPinned) return -1;
+          if (!aPinned && bPinned) return 1;
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
       },
 
       getAllThreads: () => {
-        const { userThreads } = get();
+        const { userThreads, pinnedMockThreadIds } = get();
 
-        // Combine and sort
-        return [...userThreads, ...MOCK_THREADS].sort(
-          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
+        // Helper to check if thread is pinned
+        const isPinned = (thread: Thread | UserThread) => {
+          if ('content' in thread) {
+            return thread.isPinned || false;
+          }
+          return thread.isPinned || pinnedMockThreadIds.includes(thread.id);
+        };
+
+        // Combine and sort: pinned first, then by updatedAt
+        return [...userThreads, ...MOCK_THREADS].sort((a, b) => {
+          const aPinned = isPinned(a);
+          const bPinned = isPinned(b);
+          if (aPinned && !bPinned) return -1;
+          if (!aPinned && bPinned) return 1;
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        });
       },
 
       getRecentThreads: (limit: number = 10) => {
-        const { userThreads } = get();
+        const { userThreads, pinnedMockThreadIds } = get();
 
-        // Combine, sort, and limit
+        // Helper to check if thread is pinned
+        const isPinned = (thread: Thread | UserThread) => {
+          if ('content' in thread) {
+            return thread.isPinned || false;
+          }
+          return thread.isPinned || pinnedMockThreadIds.includes(thread.id);
+        };
+
+        // Combine, sort (pinned first), and limit
         return [...userThreads, ...MOCK_THREADS]
-          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+          .sort((a, b) => {
+            const aPinned = isPinned(a);
+            const bPinned = isPinned(b);
+            if (aPinned && !bPinned) return -1;
+            if (!aPinned && bPinned) return 1;
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          })
           .slice(0, limit);
       },
 
@@ -270,11 +320,71 @@ export const useThreadStore = create<ThreadState>()(
         const thread = userThreads.find((t) => t.id === threadId);
         return thread?.content;
       },
+
+      togglePin: (threadId: string, verifiedRole?: 'admin' | 'moderator') => {
+        // If a verified role is passed, trust it (caller already verified via Supabase auth)
+        // Otherwise, fall back to local auth store check for backwards compatibility
+        if (!verifiedRole) {
+          const authState = useAuthStore.getState();
+          const user = authState.user;
+
+          // Only admins and moderators can pin threads
+          if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
+            return false;
+          }
+        }
+
+        const { userThreads, pinnedMockThreadIds } = get();
+
+        // Check if it's a user thread
+        const userThread = userThreads.find((t) => t.id === threadId);
+        if (userThread) {
+          set((state) => ({
+            userThreads: state.userThreads.map((t) =>
+              t.id === threadId ? { ...t, isPinned: !t.isPinned } : t
+            ),
+          }));
+          return true;
+        }
+
+        // Check if it's a mock thread
+        const mockThread = MOCK_THREADS.find((t) => t.id === threadId);
+        if (mockThread) {
+          const isCurrentlyPinned = pinnedMockThreadIds.includes(threadId);
+          set((state) => ({
+            pinnedMockThreadIds: isCurrentlyPinned
+              ? state.pinnedMockThreadIds.filter((id) => id !== threadId)
+              : [...state.pinnedMockThreadIds, threadId],
+          }));
+          return true;
+        }
+
+        return false;
+      },
+
+      isThreadPinned: (threadId: string) => {
+        const { userThreads, pinnedMockThreadIds } = get();
+
+        // Check user thread
+        const userThread = userThreads.find((t) => t.id === threadId);
+        if (userThread) {
+          return userThread.isPinned || false;
+        }
+
+        // Check mock thread (original isPinned or manually pinned)
+        const mockThread = MOCK_THREADS.find((t) => t.id === threadId);
+        if (mockThread) {
+          return mockThread.isPinned || pinnedMockThreadIds.includes(threadId);
+        }
+
+        return false;
+      },
     }),
     {
       name: 'pokemon-tcg-threads',
       partialize: (state) => ({
         userThreads: state.userThreads,
+        pinnedMockThreadIds: state.pinnedMockThreadIds,
       }),
     }
   )

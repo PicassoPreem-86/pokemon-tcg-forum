@@ -11,7 +11,6 @@ import {
   Clock,
   Pin,
   Flame,
-  Heart,
   Quote,
   Share2,
   Reply,
@@ -33,6 +32,8 @@ import {
 import { getThreadBySlug, isUserThread, useThreadStore } from '@/lib/thread-store';
 import { useReplyStore, Reply as ReplyType, ReplyImage } from '@/lib/reply-store';
 import { useAuthStore, useAuthStateAfterHydration } from '@/lib/auth-store';
+import { useUnreadStore } from '@/lib/unread-store';
+import { useSubscriptionStore } from '@/lib/subscription-store';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
 import { getTrainerRank } from '@/lib/trainer-ranks';
@@ -41,7 +42,13 @@ import { insertFormatting } from '@/lib/content-renderer';
 import RichContent from '@/components/forum/RichContent';
 import NestedReplies from '@/components/forum/NestedReplies';
 import BookmarkButton from '@/components/forum/BookmarkButton';
+import PinButton from '@/components/forum/PinButton';
 import ReportButton from '@/components/ReportButton';
+import WatchButton from '@/components/forum/WatchButton';
+import { ReactionDisplay } from '@/components/forum/Reactions';
+import PollDisplay from '@/components/forum/PollDisplay';
+import MentionAutocomplete from '@/components/forum/MentionAutocomplete';
+import { useThreadDraft, formatDraftAge, DRAFT_SAVE_DELAY } from '@/lib/draft-store';
 
 // Role badge colors and icons
 const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
@@ -146,24 +153,8 @@ interface PostCardProps {
 }
 
 function PostCard({ post, isFirst, onQuote, threadId }: PostCardProps) {
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
   const trainerRank = getTrainerRank(post.author.postCount);
-
-  // Sync like count after hydration to avoid mismatch
-  useEffect(() => {
-    setLikeCount(post.likes);
-  }, [post.likes]);
   const roleInfo = roleConfig[post.author.role] || roleConfig.member;
-
-  const handleLike = () => {
-    if (liked) {
-      setLikeCount(likeCount - 1);
-    } else {
-      setLikeCount(likeCount + 1);
-    }
-    setLiked(!liked);
-  };
 
   const handleQuote = () => {
     if (onQuote) {
@@ -272,13 +263,10 @@ function PostCard({ post, isFirst, onQuote, threadId }: PostCardProps) {
 
         {/* Post Actions */}
         <footer className="post-actions">
-          <button
-            className={`post-action-btn ${liked ? 'liked' : ''}`}
-            onClick={handleLike}
-          >
-            <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
-            <span>{likeCount}</span>
-          </button>
+          <ReactionDisplay
+            contentId={isFirst && threadId ? `thread-${threadId}` : `post-${post.id}`}
+            compact={true}
+          />
 
           <button className="post-action-btn" onClick={handleQuote}>
             <Quote size={16} />
@@ -318,6 +306,11 @@ function PostCard({ post, isFirst, onQuote, threadId }: PostCardProps) {
 // Reply Form Component
 interface ReplyFormProps {
   threadId: string;
+  threadData?: {
+    slug: string;
+    title: string;
+    categoryId: string;
+  };
   onReplyPosted?: () => void;
   quotedContent?: string;
   quotedAuthor?: string;
@@ -329,6 +322,7 @@ interface ReplyFormProps {
 
 function ReplyForm({
   threadId,
+  threadData,
   onReplyPosted,
   quotedContent,
   quotedAuthor,
@@ -353,6 +347,55 @@ function ReplyForm({
   const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const formRef = React.useRef<HTMLDivElement>(null);
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Draft auto-save
+  const { draft, save: saveDraft, clear: clearDraft, draftAge } = useThreadDraft(threadId, parentReplyId);
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
+  // Load draft on mount
+  useEffect(() => {
+    if (!draftLoaded && draft && draft.content) {
+      setContent(draft.content);
+      if (draft.images && draft.images.length > 0) {
+        setUploadedImages(draft.images);
+      }
+      setDraftLoaded(true);
+    }
+  }, [draft, draftLoaded]);
+
+  // Auto-save draft on content/images change (debounced)
+  useEffect(() => {
+    // Don't save if content is from initial draft load
+    if (!draftLoaded && draft?.content) return;
+
+    // Clear previous timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Only save if there's content
+    if (content.trim() || uploadedImages.length > 0) {
+      setDraftStatus('saving');
+      saveTimeoutRef.current = setTimeout(() => {
+        saveDraft(content, uploadedImages.length > 0 ? uploadedImages : undefined);
+        setDraftStatus('saved');
+        // Reset to idle after a short delay
+        setTimeout(() => setDraftStatus('idle'), 2000);
+      }, DRAFT_SAVE_DELAY);
+    } else {
+      // Clear draft if content is empty
+      clearDraft();
+      setDraftStatus('idle');
+    }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [content, uploadedImages, draftLoaded, draft?.content, saveDraft, clearDraft]);
 
   // Handle image upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -591,6 +634,7 @@ function ReplyForm({
 
   const { user, isAuthenticated, isHydrated: isAuthHydrated } = useAuthStateAfterHydration();
   const { createReply } = useReplyStore();
+  const { subscribe, isSubscribed } = useSubscriptionStore();
 
   // Handle dynamic quote changes
   useEffect(() => {
@@ -664,8 +708,17 @@ function ReplyForm({
       showSuccessToast('Reply posted!', 'Your reply has been added to the thread');
       setContent('');
       setUploadedImages([]); // Clear uploaded images
+      clearDraft(); // Clear the saved draft
       onCancelReplyTo?.(); // Clear reply-to state
       onReplyPosted?.();
+
+      // Auto-subscribe to thread after first reply (if not already subscribed)
+      if (threadData && !isSubscribed(threadId)) {
+        subscribe(
+          { id: threadId, slug: threadData.slug, title: threadData.title, categoryId: threadData.categoryId },
+          { isAutoSubscribed: true }
+        );
+      }
     } else {
       showErrorToast('Failed to post', 'Something went wrong. Please try again.');
     }
@@ -747,17 +800,18 @@ function ReplyForm({
             </button>
           </div>
 
-          {/* Textarea (Write mode) */}
+          {/* Textarea with @mention autocomplete (Write mode) */}
           {!showPreview && (
-            <textarea
+            <MentionAutocomplete
               ref={textareaRef}
               placeholder="Share your thoughts... (Supports **bold**, *italic*, [links](url), @mentions, #hashtags)"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              rows={4}
+              minRows={4}
               disabled={isSubmitting}
+              className="reply-textarea"
             />
           )}
 
@@ -921,6 +975,28 @@ function ReplyForm({
               />
             </div>
 
+            {/* Draft status indicator */}
+            {(draftStatus !== 'idle' || (draft && draftAge)) && (
+              <div className={`draft-indicator ${draftStatus}`}>
+                {draftStatus === 'saving' ? (
+                  <>
+                    <Loader2 size={12} className="spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : draftStatus === 'saved' ? (
+                  <>
+                    <CheckCircle size={12} />
+                    <span>Draft saved</span>
+                  </>
+                ) : draft && draftAge ? (
+                  <>
+                    <Clock size={12} />
+                    <span>Draft from {formatDraftAge(draftAge)}</span>
+                  </>
+                ) : null}
+              </div>
+            )}
+
             <button
               className="reply-submit"
               disabled={!content.trim() || content.trim().length < 5 || isSubmitting}
@@ -975,8 +1051,6 @@ interface UserReplyCardProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved component for future use
 function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserReplyCardProps) {
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(reply.content);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -984,41 +1058,13 @@ function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserRepl
   const [isSaving, setIsSaving] = useState(false);
 
   const { user } = useAuthStore();
-  const { likeReply, unlikeReply, editReply, deleteReply } = useReplyStore();
+  const { editReply, deleteReply } = useReplyStore();
   const trainerRank = getTrainerRank(reply.author.postCount);
   const roleInfo = roleConfig[reply.author.role] || roleConfig.member;
 
   // Check if current user owns this reply
   const isOwner = user && user.id === reply.author.id;
   const canModerate = user && (user.role === 'admin' || user.role === 'moderator');
-
-  // Sync like count after hydration to avoid mismatch
-  useEffect(() => {
-    setLikeCount(reply.likes);
-  }, [reply.likes]);
-
-  // Check if current user has liked this reply
-  useEffect(() => {
-    if (user && reply.likedBy.includes(user.id)) {
-      setLiked(true);
-    }
-  }, [user, reply.likedBy]);
-
-  const handleLike = () => {
-    if (!user) return;
-
-    if (liked) {
-      if (unlikeReply(reply.id)) {
-        setLikeCount(likeCount - 1);
-        setLiked(false);
-      }
-    } else {
-      if (likeReply(reply.id)) {
-        setLikeCount(likeCount + 1);
-        setLiked(true);
-      }
-    }
-  };
 
   const handleEdit = () => {
     setEditContent(reply.content);
@@ -1274,13 +1320,10 @@ function UserReplyCard({ reply, replyNumber, onReplyDeleted, onQuote }: UserRepl
 
         {/* Reply Actions */}
         <footer className="post-actions">
-          <button
-            className={`post-action-btn ${liked ? 'liked' : ''}`}
-            onClick={handleLike}
-          >
-            <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
-            <span>{likeCount}</span>
-          </button>
+          <ReactionDisplay
+            contentId={`reply-${reply.id}`}
+            compact={true}
+          />
 
           <button className="post-action-btn" onClick={handleQuote}>
             <Quote size={16} />
@@ -1368,6 +1411,15 @@ export default function ThreadBySlugPage() {
   useEffect(() => {
     setIsPageHydrated(true);
   }, []);
+
+  // Mark thread as read when viewed
+  const markThreadAsRead = useUnreadStore(state => state.markThreadAsRead);
+  useEffect(() => {
+    if (thread && isPageHydrated && !isLoadingThread) {
+      // Mark this thread as read with current post count
+      markThreadAsRead(thread.id, thread.postCount);
+    }
+  }, [thread, isPageHydrated, isLoadingThread, markThreadAsRead]);
 
   // Handle quote from any post/reply
   const handleQuote = (author: string, content: string) => {
@@ -1715,29 +1767,46 @@ export default function ThreadBySlugPage() {
             </span>
           </div>
 
-          {/* Thread Edit/Delete Buttons */}
-          {canEditDelete && !isEditingThread && (
-            <div className="thread-header-actions">
-              {isOwner && (
+          {/* Thread Actions */}
+          <div className="thread-header-actions">
+            {/* Pin Button - for admins/moderators */}
+            <PinButton threadId={thread.id} variant="button" />
+
+            {/* Watch Button - always visible for logged in users */}
+            <WatchButton
+              thread={{
+                id: thread.id,
+                slug: thread.slug,
+                title: thread.title,
+                categoryId: thread.categoryId,
+              }}
+              variant="compact"
+            />
+
+            {/* Edit/Delete Buttons - only for owner/moderators */}
+            {canEditDelete && !isEditingThread && (
+              <>
+                {isOwner && (
+                  <button
+                    className="thread-action-btn thread-action-edit"
+                    onClick={handleEditThread}
+                    title="Edit thread"
+                  >
+                    <Edit2 size={16} />
+                    Edit
+                  </button>
+                )}
                 <button
-                  className="thread-action-btn thread-action-edit"
-                  onClick={handleEditThread}
-                  title="Edit thread"
+                  className="thread-action-btn thread-action-delete"
+                  onClick={handleDeleteThreadClick}
+                  title="Delete thread"
                 >
-                  <Edit2 size={16} />
-                  Edit
+                  <Trash2 size={16} />
+                  Delete
                 </button>
-              )}
-              <button
-                className="thread-action-btn thread-action-delete"
-                onClick={handleDeleteThreadClick}
-                title="Delete thread"
-              >
-                <Trash2 size={16} />
-                Delete
-              </button>
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Thread Title - Edit Mode */}
@@ -1829,6 +1898,9 @@ export default function ThreadBySlugPage() {
         )}
       </header>
 
+      {/* Poll Display (if thread has a poll) */}
+      <PollDisplay threadId={thread.id} className="mb-6" />
+
       {/* Posts - Original Post and Mock Replies */}
       <div className="posts-container">
         {posts.map((post, index) => (
@@ -1847,6 +1919,11 @@ export default function ThreadBySlugPage() {
       {/* Reply Form */}
       <ReplyForm
         threadId={thread.id}
+        threadData={{
+          slug: thread.slug,
+          title: thread.title,
+          categoryId: thread.categoryId,
+        }}
         onReplyPosted={handleReplyPosted}
         quotedContent={quotedContent}
         quotedAuthor={quotedAuthor}

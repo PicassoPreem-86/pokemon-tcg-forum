@@ -197,3 +197,45 @@ export interface SidebarLink {
   href: string;
   icon?: string;
 }
+
+// Poll Types
+export interface PollOption {
+  id: string;
+  text: string;
+  voteCount: number;
+  voterIds: string[];
+}
+
+export interface Poll {
+  id: string;
+  threadId: string;
+  question: string;
+  options: PollOption[];
+  createdAt: string;
+  expiresAt?: string;
+  isExpired?: boolean;
+  // Settings
+  allowMultipleVotes: boolean;
+  allowVoteChange: boolean;
+  showResultsBeforeVote: boolean;
+  isAnonymous: boolean;
+  // Stats
+  totalVotes: number;
+  voterCount: number;
+}
+
+export interface PollVote {
+  userId: string;
+  optionIds: string[];
+  votedAt: string;
+}
+
+export interface CreatePollData {
+  question: string;
+  options: string[];
+  expiresAt?: string;
+  allowMultipleVotes?: boolean;
+  allowVoteChange?: boolean;
+  showResultsBeforeVote?: boolean;
+  isAnonymous?: boolean;
+}

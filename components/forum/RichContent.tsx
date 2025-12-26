@@ -2,7 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { parseContent, ParsedLine, ParsedSegment } from '@/lib/content-renderer';
+
+// Dynamically import CodeBlock to avoid SSR issues with Prism
+const CodeBlock = dynamic(() => import('./CodeBlock'), {
+  ssr: false,
+  loading: () => <div className="code-block-loading">Loading code...</div>,
+});
 
 interface RichContentProps {
   content: string;
@@ -88,6 +95,15 @@ function RenderLine({ line, index }: { line: ParsedLine; index: number }) {
 
     case 'hr':
       return <hr key={index} className="content-hr" />;
+
+    case 'codeblock':
+      return (
+        <CodeBlock
+          key={index}
+          code={line.raw || ''}
+          language={line.language || 'plaintext'}
+        />
+      );
 
     case 'heading':
       const headingClass = `content-heading content-h${line.level}`;

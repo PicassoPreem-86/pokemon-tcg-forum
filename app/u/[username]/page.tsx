@@ -37,6 +37,8 @@ import { getTrainerRank } from '@/lib/trainer-ranks';
 import { formatNumber } from '@/lib/categories';
 import ReportButton from '@/components/ReportButton';
 import type { Profile, UserBadge } from '@/lib/supabase/database.types';
+import { useBadgeStore } from '@/lib/badge-store';
+import { getBadgeById, RARITY_INFO, type Badge } from '@/lib/badges';
 
 // Extended profile type with badges
 type ProfileWithBadges = Profile & {
@@ -105,6 +107,51 @@ function BadgeCard({ badge }: { badge: UserBadge }) {
   );
 }
 
+// Local earned badge component (from badge store)
+function LocalBadgeCard({ badge, earnedAt }: { badge: Badge; earnedAt: string }) {
+  const rarityInfo = RARITY_INFO[badge.rarity];
+  return (
+    <div
+      className="profile-badge"
+      style={{
+        borderColor: badge.color,
+        background: `linear-gradient(135deg, ${badge.color}10 0%, transparent 100%)`
+      }}
+    >
+      <div
+        className="profile-badge-icon"
+        style={{
+          backgroundColor: `${badge.color}20`,
+          fontSize: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        {badge.icon}
+      </div>
+      <div className="profile-badge-info">
+        <span className="profile-badge-name" style={{ color: badge.color }}>{badge.name}</span>
+        <span className="profile-badge-desc">{badge.description}</span>
+        <div className="flex items-center gap-2 mt-1">
+          <span
+            className="text-xs px-2 py-0.5 rounded"
+            style={{
+              backgroundColor: `${rarityInfo.color}20`,
+              color: rarityInfo.color
+            }}
+          >
+            {rarityInfo.name}
+          </span>
+          <span className="text-xs text-gray-400">
+            Earned {formatJoinDate(earnedAt)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Stats card component
 function StatCard({ icon, value, label, color }: { icon: React.ReactNode; value: string; label: string; color?: string }) {
   return (
@@ -127,6 +174,30 @@ export default function UserProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'activity' | 'threads' | 'badges'>('activity');
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Check if viewing own profile
+  const isOwnProfile = currentUser?.username === username;
+
+  // Get local earned badges from badge store
+  const { earnedBadges } = useBadgeStore();
+
+  // Hydration check for badge store
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Get earned badge details
+  const localEarnedBadges = isHydrated && isOwnProfile
+    ? earnedBadges
+        .map((earned) => {
+          const badge = getBadgeById(earned.badgeId);
+          if (!badge) return null;
+          return { badge, earnedAt: earned.earnedAt };
+        })
+        .filter((b): b is { badge: Badge; earnedAt: string } => b !== null)
+    : [];
+
   const [threads, setThreads] = useState<Array<{
     id: string;
     slug: string;
@@ -136,9 +207,6 @@ export default function UserProfilePage() {
     view_count: number;
     is_hot: boolean;
   }>>([]);
-
-  // Check if viewing own profile
-  const isOwnProfile = currentUser?.username === username;
 
   // Fetch user profile
   useEffect(() => {
@@ -387,7 +455,7 @@ export default function UserProfilePage() {
         />
         <StatCard
           icon={<Trophy size={24} />}
-          value={(profile.badges?.length || 0).toString()}
+          value={((profile.badges?.length || 0) + (isOwnProfile ? localEarnedBadges.length : 0)).toString()}
           label="Badges"
           color="#8B5CF6"
         />
@@ -414,7 +482,7 @@ export default function UserProfilePage() {
           onClick={() => setActiveTab('badges')}
         >
           <Award size={16} />
-          Badges ({profile.badges?.length || 0})
+          Badges ({(profile.badges?.length || 0) + (isOwnProfile ? localEarnedBadges.length : 0)})
         </button>
       </div>
 
@@ -489,17 +557,57 @@ export default function UserProfilePage() {
         {/* Badges Tab */}
         {activeTab === 'badges' && (
           <div className="profile-badges">
+            {/* Local earned badges (from badge store) - only show on own profile */}
+            {isOwnProfile && localEarnedBadges.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                  <Trophy size={18} className="text-yellow-400" />
+                  Your Earned Badges ({localEarnedBadges.length})
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {localEarnedBadges.map(({ badge, earnedAt }) => (
+                    <LocalBadgeCard key={badge.id} badge={badge} earnedAt={earnedAt} />
+                  ))}
+                </div>
+                <Link
+                  href="/badges"
+                  className="inline-flex items-center gap-2 mt-4 text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  <Award size={16} />
+                  View all badges & progress →
+                </Link>
+              </div>
+            )}
+
+            {/* Database badges (from Supabase) */}
             {profile.badges && profile.badges.length > 0 ? (
-              profile.badges.map((badge) => (
-                <BadgeCard key={badge.id} badge={badge} />
-              ))
-            ) : (
+              <div>
+                {isOwnProfile && localEarnedBadges.length > 0 && (
+                  <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+                    <Sparkles size={18} className="text-purple-400" />
+                    Special Badges
+                  </h3>
+                )}
+                {profile.badges.map((badge) => (
+                  <BadgeCard key={badge.id} badge={badge} />
+                ))}
+              </div>
+            ) : !isOwnProfile || localEarnedBadges.length === 0 ? (
               <div className="profile-no-badges">
                 <Award size={48} />
                 <p>No badges earned yet</p>
                 <span>Participate in the community to earn badges!</span>
+                {isOwnProfile && (
+                  <Link
+                    href="/badges"
+                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                  >
+                    <Trophy size={16} />
+                    View Available Badges
+                  </Link>
+                )}
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>

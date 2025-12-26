@@ -1,20 +1,37 @@
 import Link from 'next/link';
-import { MessageSquare, Eye, Pin, Lock, Flame } from 'lucide-react';
+import { MessageSquare, Eye, Pin, Lock, Flame, Hash } from 'lucide-react';
 import { Thread } from '@/lib/types';
 import { cn, formatNumber, formatRelativeTime, getInitials, generateAvatarColor } from '@/lib/utils';
 import { getCategoryBySlug } from '@/lib/categories';
 import BookmarkButton from './BookmarkButton';
+import UnreadIndicator from './UnreadIndicator';
+
+// Clickable tag component
+function TagLink({ tag }: { tag: string }) {
+  return (
+    <Link
+      href={`/tag/${tag}`}
+      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 hover:text-purple-300 rounded text-xs transition-colors pointer-events-auto"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Hash className="h-2.5 w-2.5" />
+      {tag}
+    </Link>
+  );
+}
 
 interface ThreadCardProps {
   thread: Thread;
   variant?: 'default' | 'compact' | 'featured';
   showCategory?: boolean;
+  isKeyboardSelected?: boolean;
 }
 
 export default function ThreadCard({
   thread,
   variant = 'default',
   showCategory = false,
+  isKeyboardSelected = false,
 }: ThreadCardProps) {
   const category = getCategoryBySlug(thread.categoryId);
 
@@ -34,11 +51,17 @@ export default function ThreadCard({
         href={`/${thread.categoryId}/${thread.slug}`}
         className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-dark-800 transition-colors group"
       >
-        {/* Status Icons */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Status Icons & Unread */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {thread.isPinned && <Pin className="h-3.5 w-3.5 text-purple-500" />}
           {thread.isHot && <Flame className="h-3.5 w-3.5 text-orange-500" />}
           {thread.isLocked && <Lock className="h-3.5 w-3.5 text-dark-500" />}
+          <UnreadIndicator
+            threadId={thread.id}
+            currentPostCount={thread.postCount}
+            variant="dot"
+            size="sm"
+          />
         </div>
 
         {/* Title */}
@@ -85,17 +108,25 @@ export default function ThreadCard({
           </div>
 
           <div className="flex-1 min-w-0">
-            {/* Category Badge */}
-            {showCategory && category && (
-              <span
-                className={cn(
-                  'inline-block text-xs px-2 py-0.5 rounded-full mb-2',
-                  categoryColors[category.color] || 'bg-dark-700 text-dark-300'
-                )}
-              >
-                {category.name}
-              </span>
-            )}
+            {/* Badges */}
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              {showCategory && category && (
+                <span
+                  className={cn(
+                    'text-xs px-2 py-0.5 rounded-full',
+                    categoryColors[category.color] || 'bg-dark-700 text-dark-300'
+                  )}
+                >
+                  {category.name}
+                </span>
+              )}
+              <UnreadIndicator
+                threadId={thread.id}
+                currentPostCount={thread.postCount}
+                variant="badge"
+                size="sm"
+              />
+            </div>
 
             {/* Title */}
             <h3 className="text-lg font-semibold text-white group-hover:text-purple-400 transition-colors line-clamp-2 mb-2">
@@ -113,6 +144,15 @@ export default function ThreadCard({
               <p className="text-sm text-dark-400 line-clamp-2 mb-3">
                 {thread.excerpt}
               </p>
+            )}
+
+            {/* Tags */}
+            {thread.tags && thread.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {thread.tags.slice(0, 4).map((tag) => (
+                  <TagLink key={tag} tag={tag} />
+                ))}
+              </div>
             )}
 
             {/* Meta */}
@@ -135,7 +175,15 @@ export default function ThreadCard({
 
   // Default variant
   return (
-    <div className="flex items-center gap-4 p-4 bg-dark-800 rounded-lg border border-dark-700 hover:border-dark-600 transition-all group relative">
+    <div
+      className={cn(
+        "flex items-center gap-4 p-4 bg-dark-800 rounded-lg border transition-all group relative",
+        isKeyboardSelected
+          ? "border-purple-500 ring-2 ring-purple-500/30 bg-dark-750"
+          : "border-dark-700 hover:border-dark-600"
+      )}
+      data-keyboard-selected={isKeyboardSelected}
+    >
       <Link
         href={`/${thread.categoryId}/${thread.slug}`}
         className="absolute inset-0 z-0"
@@ -175,6 +223,14 @@ export default function ThreadCard({
             <Lock className="h-4 w-4 text-dark-500 shrink-0" />
           )}
 
+          {/* Unread Indicator */}
+          <UnreadIndicator
+            threadId={thread.id}
+            currentPostCount={thread.postCount}
+            variant="badge"
+            size="sm"
+          />
+
           {/* Category Badge */}
           {showCategory && category && (
             <span
@@ -193,11 +249,21 @@ export default function ThreadCard({
           {thread.title}
         </h4>
 
-        {/* Author & Time */}
-        <div className="flex items-center gap-2 text-xs text-dark-500">
+        {/* Author, Time & Tags */}
+        <div className="flex items-center gap-2 text-xs text-dark-500 flex-wrap">
           <span>{thread.author.username}</span>
           <span>·</span>
           <span>{formatRelativeTime(thread.createdAt)}</span>
+          {thread.tags && thread.tags.length > 0 && (
+            <>
+              <span>·</span>
+              <div className="flex items-center gap-1">
+                {thread.tags.slice(0, 3).map((tag) => (
+                  <TagLink key={tag} tag={tag} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

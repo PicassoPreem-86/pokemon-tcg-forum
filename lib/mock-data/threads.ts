@@ -716,3 +716,221 @@ export const getThreadById = (id: string): Thread | undefined => {
 export const getThreadBySlug = (slug: string): Thread | undefined => {
   return MOCK_THREADS.find(thread => thread.slug === slug);
 };
+
+/**
+ * Get all unique tags from threads
+ */
+export const getAllTags = (): string[] => {
+  const tagSet = new Set<string>();
+  MOCK_THREADS.forEach(thread => {
+    if (thread.tags) {
+      thread.tags.forEach(tag => tagSet.add(tag));
+    }
+  });
+  return Array.from(tagSet).sort();
+};
+
+/**
+ * Get threads by tag
+ */
+export const getThreadsByTag = (tag: string): Thread[] => {
+  return MOCK_THREADS.filter(
+    thread => thread.tags?.includes(tag.toLowerCase())
+  ).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+};
+
+/**
+ * Get popular tags with counts
+ */
+export interface TagWithCount {
+  tag: string;
+  count: number;
+}
+
+export const getPopularTags = (limit: number = 20): TagWithCount[] => {
+  const tagCounts = new Map<string, number>();
+
+  MOCK_THREADS.forEach(thread => {
+    if (thread.tags) {
+      thread.tags.forEach(tag => {
+        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+      });
+    }
+  });
+
+  return Array.from(tagCounts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+};
+
+/**
+ * Search tags by query
+ */
+export const searchTags = (query: string): string[] => {
+  const lowerQuery = query.toLowerCase();
+  return getAllTags().filter(tag => tag.includes(lowerQuery));
+};
+
+// ============================================
+// TRENDING ALGORITHM
+// ============================================
+
+export interface TrendingThread extends Thread {
+  trendingScore: number;
+  trendingRank: number;
+  viewVelocity: number;    // views per hour
+  replyVelocity: number;   // replies per hour
+  engagementRate: number;  // replies / views ratio
+  hoursOld: number;
+}
+
+/**
+ * Calculate the age of a thread in hours
+ */
+const getHoursOld = (dateString: string): number => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  return Math.max(1, diffMs / (1000 * 60 * 60)); // Minimum 1 hour to avoid division issues
+};
+
+/**
+ * Calculate trending score for a thread
+ *
+ * The algorithm considers:
+ * - View velocity (views per hour) - weighted at 40%
+ * - Reply velocity (replies per hour) - weighted at 35%
+ * - Engagement rate (replies/views) - weighted at 15%
+ * - Recency boost (newer threads get a multiplier) - weighted at 10%
+ *
+ * Score decays over time using a logarithmic decay function
+ */
+export const calculateTrendingScore = (thread: Thread): {
+  score: number;
+  viewVelocity: number;
+  replyVelocity: number;
+  engagementRate: number;
+  hoursOld: number;
+} => {
+  const hoursOld = getHoursOld(thread.updatedAt);
+  const hoursCreated = getHoursOld(thread.createdAt);
+
+  // Calculate velocities (per hour)
+  const viewVelocity = thread.viewCount / hoursCreated;
+  const replyVelocity = thread.postCount / hoursCreated;
+
+  // Engagement rate (replies per 100 views)
+  const engagementRate = thread.viewCount > 0
+    ? (thread.postCount / thread.viewCount) * 100
+    : 0;
+
+  // Recency multiplier - threads updated recently get a boost
+  // Uses logarithmic decay: newer = higher multiplier
+  // 1 hour old = 2.0x, 24 hours = 1.3x, 48 hours = 1.15x, 7 days = 1.0x
+  const recencyMultiplier = Math.max(1, 2 - Math.log10(hoursOld + 1) / 2);
+
+  // Activity burst detection - high recent activity boosts score
+  // If updated very recently relative to creation, it's "bursting"
+  const activityRatio = hoursOld / Math.max(1, hoursCreated);
+  const burstMultiplier = activityRatio < 0.1 ? 1.5 : activityRatio < 0.25 ? 1.25 : 1;
+
+  // Calculate weighted score components
+  const viewScore = viewVelocity * 0.4;          // 40% weight
+  const replyScore = replyVelocity * 10 * 0.35;  // 35% weight (multiplied by 10 since replies < views)
+  const engagementScore = engagementRate * 0.15; // 15% weight
+  const recencyScore = recencyMultiplier * 10;   // Base recency contribution
+
+  // Combine scores
+  let score = (viewScore + replyScore + engagementScore + recencyScore) * burstMultiplier;
+
+  // Pinned threads get a small boost but shouldn't dominate
+  if (thread.isPinned) {
+    score *= 1.1;
+  }
+
+  // Already marked "hot" threads get validated by algorithm
+  if (thread.isHot) {
+    score *= 1.2;
+  }
+
+  return {
+    score: Math.round(score * 100) / 100,
+    viewVelocity: Math.round(viewVelocity * 100) / 100,
+    replyVelocity: Math.round(replyVelocity * 100) / 100,
+    engagementRate: Math.round(engagementRate * 100) / 100,
+    hoursOld: Math.round(hoursOld),
+  };
+};
+
+/**
+ * Get trending threads sorted by trending score
+ */
+export const getTrendingThreads = (limit: number = 20): TrendingThread[] => {
+  const threadsWithScores = MOCK_THREADS.map(thread => {
+    const metrics = calculateTrendingScore(thread);
+    return {
+      ...thread,
+      trendingScore: metrics.score,
+      trendingRank: 0, // Will be set after sorting
+      viewVelocity: metrics.viewVelocity,
+      replyVelocity: metrics.replyVelocity,
+      engagementRate: metrics.engagementRate,
+      hoursOld: metrics.hoursOld,
+    };
+  });
+
+  // Sort by trending score (highest first)
+  threadsWithScores.sort((a, b) => b.trendingScore - a.trendingScore);
+
+  // Assign ranks
+  threadsWithScores.forEach((thread, index) => {
+    thread.trendingRank = index + 1;
+  });
+
+  return threadsWithScores.slice(0, limit);
+};
+
+/**
+ * Get threads that are "rising" - high velocity but not yet top trending
+ * These are threads showing momentum that could become hot
+ */
+export const getRisingThreads = (limit: number = 10): TrendingThread[] => {
+  const allTrending = getTrendingThreads(100);
+
+  // Rising = high velocity but not in top 10, and relatively new (< 48 hours old)
+  return allTrending
+    .filter(t => t.trendingRank > 10 && t.hoursOld < 48)
+    .sort((a, b) => b.replyVelocity - a.replyVelocity)
+    .slice(0, limit);
+};
+
+/**
+ * Determine the "heat level" of a thread based on its trending score
+ * Returns: 'fire' | 'hot' | 'warm' | 'normal'
+ */
+export const getHeatLevel = (trendingScore: number): 'fire' | 'hot' | 'warm' | 'normal' => {
+  if (trendingScore >= 50) return 'fire';
+  if (trendingScore >= 25) return 'hot';
+  if (trendingScore >= 10) return 'warm';
+  return 'normal';
+};
+
+/**
+ * Get trending stats summary
+ */
+export const getTrendingStats = () => {
+  const trending = getTrendingThreads(100);
+  const avgScore = trending.reduce((sum, t) => sum + t.trendingScore, 0) / trending.length;
+  const topThread = trending[0];
+  const fireCount = trending.filter(t => getHeatLevel(t.trendingScore) === 'fire').length;
+  const hotCount = trending.filter(t => getHeatLevel(t.trendingScore) === 'hot').length;
+
+  return {
+    averageScore: Math.round(avgScore * 100) / 100,
+    topThread,
+    fireCount,
+    hotCount,
+    totalTracked: trending.length,
+  };
+};

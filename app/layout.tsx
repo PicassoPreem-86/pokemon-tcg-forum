@@ -5,6 +5,7 @@ import { SITE_CONFIG } from '@/lib/config';
 import { HomepageJsonLd } from '@/components/seo';
 import ToastContainer from '@/components/ui/ToastContainer';
 import { AuthProvider } from '@/lib/hooks';
+import KeyboardShortcuts, { KeyboardIndicator } from '@/components/KeyboardShortcuts';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -69,6 +70,8 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <ToastContainer />
+          <KeyboardShortcuts />
+          <KeyboardIndicator />
         </AuthProvider>
       </body>
     </html>

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './auth-store';
+import { useBadgeStore } from './badge-store';
 
 // Image attachment interface
 export interface ReplyImage {
@@ -142,6 +143,11 @@ export const useReplyStore = create<ReplyState>()(
           postCount: (user.postCount || 0) + 1,
         });
 
+        // Award badges for reply creation
+        const badgeStore = useBadgeStore.getState();
+        badgeStore.incrementReplies();
+        badgeStore.incrementPosts();
+
         return newReply;
       },
 
@@ -279,6 +285,16 @@ export const useReplyStore = create<ReplyState>()(
 
         if (!foundThreadId) return false;
 
+        // Find the reply author to award likes received badge
+        let replyAuthorId: string | undefined;
+        for (const replies of Object.values(repliesByThread)) {
+          const reply = replies.find((r) => r.id === replyId);
+          if (reply) {
+            replyAuthorId = reply.author.id;
+            break;
+          }
+        }
+
         set((state) => ({
           repliesByThread: {
             ...state.repliesByThread,
@@ -293,6 +309,17 @@ export const useReplyStore = create<ReplyState>()(
             ),
           },
         }));
+
+        // Award badges for giving a like
+        const badgeStore = useBadgeStore.getState();
+        badgeStore.incrementLikesGiven();
+
+        // Award badge for receiving a like (to reply author)
+        // Note: In a real app, this would be tracked per-user on the server
+        // For demo purposes, we only track likes for the current user
+        if (replyAuthorId === user.id) {
+          badgeStore.incrementLikesReceived();
+        }
 
         return true;
       },

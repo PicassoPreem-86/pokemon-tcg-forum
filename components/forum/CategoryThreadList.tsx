@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MessageCircle, Eye, Pin, Flame } from 'lucide-react';
+import { MessageCircle, Eye, Pin, Flame, CheckCheck } from 'lucide-react';
 import { useThreadStore } from '@/lib/thread-store';
 import { Thread } from '@/lib/types';
+import { useUnreadStore, useTotalUnreadCount } from '@/lib/unread-store';
+import UnreadIndicator from './UnreadIndicator';
 
 interface CategoryThreadListProps {
   categoryId: string;
@@ -48,7 +50,13 @@ export default function CategoryThreadList({
   currentPage,
   threadsPerPage = 20
 }: CategoryThreadListProps) {
-  const { userThreads } = useThreadStore();
+  const { userThreads, isThreadPinned } = useThreadStore();
+  const markAllAsRead = useUnreadStore(state => state.markAllAsRead);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // Combine user threads with mock threads
   const allThreads = useMemo(() => {
@@ -79,9 +87,9 @@ export default function CategoryThreadList({
     return sorted;
   }, [userThreads, mockThreads, categoryId, sortBy]);
 
-  // Separate pinned and regular threads
-  const pinnedThreads = allThreads.filter(t => t.isPinned);
-  const regularThreads = allThreads.filter(t => !t.isPinned);
+  // Separate pinned and regular threads (using store's isThreadPinned to check pinnedMockThreadIds)
+  const pinnedThreads = allThreads.filter(t => isThreadPinned(t.id));
+  const regularThreads = allThreads.filter(t => !isThreadPinned(t.id));
 
   // Pagination
   const startIndex = (currentPage - 1) * threadsPerPage;
@@ -92,6 +100,15 @@ export default function CategoryThreadList({
   const displayThreads = currentPage === 1
     ? [...pinnedThreads, ...paginatedThreads]
     : paginatedThreads;
+
+  // Calculate unread threads
+  const threadDataForUnread = allThreads.map(t => ({ id: t.id, postCount: t.postCount }));
+  const { totalUnread, threadsWithUnread } = useTotalUnreadCount(threadDataForUnread);
+
+  // Handle mark all as read
+  const handleMarkAllAsRead = () => {
+    markAllAsRead(threadDataForUnread);
+  };
 
   if (displayThreads.length === 0) {
     return (
@@ -108,6 +125,22 @@ export default function CategoryThreadList({
 
   return (
     <>
+      {/* Unread summary and Mark All as Read button */}
+      {isHydrated && threadsWithUnread > 0 && (
+        <div className="flex items-center justify-between py-2 px-3 mb-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <span className="text-sm text-blue-400">
+            {threadsWithUnread} thread{threadsWithUnread !== 1 ? 's' : ''} with unread posts
+          </span>
+          <button
+            onClick={handleMarkAllAsRead}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 bg-blue-500/20 hover:bg-blue-500/30 rounded-md transition-colors"
+          >
+            <CheckCheck size={14} />
+            Mark All as Read
+          </button>
+        </div>
+      )}
+
       {displayThreads.map((thread, index) => {
         // Show divider after pinned threads
         const showDivider = currentPage === 1 &&
@@ -132,7 +165,7 @@ export default function CategoryThreadList({
 
               <div className="thread-content">
                 <div className="thread-title-row">
-                  {thread.isPinned && (
+                  {isThreadPinned(thread.id) && (
                     <span className="thread-tag badge-pinned">
                       <Pin size={12} />
                       Pinned
@@ -144,6 +177,12 @@ export default function CategoryThreadList({
                       Hot
                     </span>
                   )}
+                  <UnreadIndicator
+                    threadId={thread.id}
+                    currentPostCount={thread.postCount}
+                    variant="badge"
+                    size="sm"
+                  />
                   <Link href={`/thread/${thread.slug}`} className="thread-title">
                     {thread.title}
                   </Link>

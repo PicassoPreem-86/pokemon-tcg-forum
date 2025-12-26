@@ -12,6 +12,7 @@ export interface ParsedLine {
   segments: ParsedSegment[];
   level?: number; // For headings (1-3) or quote nesting
   raw?: string; // Original text for code blocks
+  language?: string; // For code blocks
 }
 
 // Parse inline formatting (bold, italic, links, etc.)
@@ -185,10 +186,57 @@ export function parseLine(line: string): ParsedLine {
   };
 }
 
-// Parse full content into lines
+// Parse full content into lines, handling code blocks
 export function parseContent(content: string): ParsedLine[] {
   const lines = content.split('\n');
-  return lines.map(parseLine);
+  const result: ParsedLine[] = [];
+
+  let inCodeBlock = false;
+  let codeBlockLanguage = '';
+  let codeBlockLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Check for code block fence
+    const fenceMatch = line.match(/^```(\w*)\s*$/);
+
+    if (fenceMatch && !inCodeBlock) {
+      // Starting a code block
+      inCodeBlock = true;
+      codeBlockLanguage = fenceMatch[1] || 'plaintext';
+      codeBlockLines = [];
+    } else if (line.trim() === '```' && inCodeBlock) {
+      // Ending a code block
+      result.push({
+        type: 'codeblock',
+        segments: [],
+        raw: codeBlockLines.join('\n'),
+        language: codeBlockLanguage,
+      });
+      inCodeBlock = false;
+      codeBlockLanguage = '';
+      codeBlockLines = [];
+    } else if (inCodeBlock) {
+      // Inside a code block
+      codeBlockLines.push(line);
+    } else {
+      // Regular line
+      result.push(parseLine(line));
+    }
+  }
+
+  // Handle unclosed code block (treat as regular text)
+  if (inCodeBlock && codeBlockLines.length > 0) {
+    // Push the opening fence as a paragraph
+    result.push(parseLine('```' + codeBlockLanguage));
+    // Push remaining lines
+    for (const codeLine of codeBlockLines) {
+      result.push(parseLine(codeLine));
+    }
+  }
+
+  return result;
 }
 
 // Helper to insert formatting into textarea

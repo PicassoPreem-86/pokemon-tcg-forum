@@ -21,12 +21,18 @@ import {
   AlertCircle,
   CheckCircle,
   LogIn,
-  Loader2
+  Loader2,
+  BarChart3
 } from 'lucide-react';
 import { CATEGORIES } from '@/lib/categories';
 import { useAuth } from '@/lib/hooks';
 import { createThread } from '@/lib/actions/threads';
 import { sanitizeHtml } from '@/lib/sanitize';
+import { getPopularTags, searchTags } from '@/lib/mock-data/threads';
+import { CreatePollData } from '@/lib/types';
+import { usePollStore } from '@/lib/poll-store';
+import PollCreator, { PollToggleButton } from '@/components/forum/PollCreator';
+import MentionAutocomplete from '@/components/forum/MentionAutocomplete';
 
 // Loading component for Suspense fallback
 function NewThreadLoading() {
@@ -78,6 +84,11 @@ function NewThreadContent() {
   const [errors, setErrors] = useState<{ title?: string; content?: string; category?: string }>({});
   const [isSuccess, setIsSuccess] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // Poll state
+  const [showPollCreator, setShowPollCreator] = useState(false);
+  const [pollData, setPollData] = useState<CreatePollData | null>(null);
+  const createPoll = usePollStore(state => state.createPoll);
 
   // Update category when URL param changes
   useEffect(() => {
@@ -203,12 +214,23 @@ function NewThreadContent() {
         tags: tags,
       });
 
-      if (result.success && result.threadSlug) {
+      if (result.success && result.threadSlug && result.threadId) {
+        // Create poll if poll data exists
+        if (pollData) {
+          createPoll(result.threadId, pollData);
+        }
+
         setIsSuccess(true);
         // Redirect to the new thread after a brief delay to ensure DB write is complete
         // Use replace instead of push to prevent back-button issues
         setTimeout(() => {
           // Use window.location for a full page navigation to avoid client-side hydration issues
+          window.location.href = `/thread/${result.threadSlug}`;
+        }, 1500);
+      } else if (result.success && result.threadSlug) {
+        // Fallback for when threadId is not returned
+        setIsSuccess(true);
+        setTimeout(() => {
           window.location.href = `/thread/${result.threadSlug}`;
         }, 1500);
       } else {
@@ -465,10 +487,10 @@ function NewThreadContent() {
               )}
             </div>
           ) : (
-            <textarea
+            <MentionAutocomplete
               id="content-editor"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               placeholder="Share your thoughts, questions, or information...
 
 You can use Markdown formatting:
@@ -476,9 +498,10 @@ You can use Markdown formatting:
 - *italic text*
 - [links](url)
 - `code`
-- > quotes"
+- > quotes
+- @mentions"
               className={`form-textarea ${errors.content ? 'error' : ''}`}
-              rows={12}
+              minRows={12}
             />
           )}
           {errors.content && (
@@ -526,6 +549,145 @@ You can use Markdown formatting:
             </div>
           </div>
           <p className="form-hint">Press Enter or comma to add a tag</p>
+
+          {/* Tag Suggestions */}
+          {tags.length < 5 && (
+            <div className="tag-suggestions" style={{
+              marginTop: '12px',
+              padding: '12px',
+              background: 'rgba(139, 92, 246, 0.05)',
+              borderRadius: '8px',
+              border: '1px solid rgba(139, 92, 246, 0.1)'
+            }}>
+              <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}>
+                Popular tags (click to add):
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {getPopularTags(12)
+                  .filter(({ tag: t }) => !tags.includes(t))
+                  .slice(0, 8)
+                  .map(({ tag: suggestedTag }) => (
+                    <button
+                      key={suggestedTag}
+                      type="button"
+                      onClick={() => {
+                        if (tags.length < 5 && !tags.includes(suggestedTag)) {
+                          setTags([...tags, suggestedTag]);
+                        }
+                      }}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        border: '1px solid rgba(139, 92, 246, 0.2)',
+                        borderRadius: '9999px',
+                        color: '#a78bfa',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)';
+                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.2)';
+                      }}
+                    >
+                      #{suggestedTag}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Poll Section */}
+        <div className="form-group">
+          <label className="form-label">
+            <BarChart3 size={16} />
+            Poll <span className="optional">(optional)</span>
+          </label>
+
+          {!showPollCreator && !pollData && (
+            <PollToggleButton
+              isActive={false}
+              onClick={() => setShowPollCreator(true)}
+            />
+          )}
+
+          {showPollCreator && !pollData && (
+            <PollCreator
+              onPollCreate={(data) => {
+                setPollData(data);
+                setShowPollCreator(false);
+              }}
+              onCancel={() => setShowPollCreator(false)}
+            />
+          )}
+
+          {pollData && (
+            <div className="poll-preview" style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '8px',
+              padding: '16px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BarChart3 size={18} style={{ color: '#a78bfa' }} />
+                  <span style={{ fontWeight: 600, color: '#fff' }}>Poll Added</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPollData(null);
+                    setShowPollCreator(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 12px',
+                    fontSize: '12px',
+                    color: '#ef4444',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <X size={14} />
+                  Remove
+                </button>
+              </div>
+              <p style={{ fontSize: '14px', color: '#e2e8f0', marginBottom: '8px' }}>
+                <strong>Q:</strong> {pollData.question}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {pollData.options.map((option, index) => (
+                  <span
+                    key={index}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '12px',
+                      background: 'rgba(139, 92, 246, 0.15)',
+                      border: '1px solid rgba(139, 92, 246, 0.25)',
+                      borderRadius: '6px',
+                      color: '#c4b5fd',
+                    }}
+                  >
+                    {option}
+                  </span>
+                ))}
+              </div>
+              {pollData.expiresAt && (
+                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
+                  Expires: {new Date(pollData.expiresAt).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Preview Card */}

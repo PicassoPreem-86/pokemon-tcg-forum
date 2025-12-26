@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useState, useEffect } from 'react';
 import { User, UserRole, UserBadge } from './types';
+import { useBadgeStore } from './badge-store';
 
 // Auth user extends base User with email
 export interface AuthUser extends User {
@@ -125,6 +126,9 @@ export const useAuthStore = create<AuthState>()(
           error: null,
         });
 
+        // Record visit for badges
+        useBadgeStore.getState().recordVisit();
+
         return true;
       },
 
@@ -197,6 +201,11 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false,
           error: null,
         });
+
+        // Award newcomer badge and record first visit
+        const badgeStore = useBadgeStore.getState();
+        badgeStore.recordVisit();
+        badgeStore.checkAndAwardBadges(); // This will award 'newcomer' badge
 
         return true;
       },
