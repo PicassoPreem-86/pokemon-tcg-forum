@@ -1,6 +1,9 @@
 import { getAuditLogs, getAuditLogStats } from '@/lib/actions/audit-log';
 import AuditLogPageClient from './page-client';
 
+// Force dynamic rendering for authentication
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Audit Log | Admin Panel',
   description: 'View admin action audit logs',

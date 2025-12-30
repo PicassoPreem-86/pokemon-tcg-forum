@@ -1,6 +1,9 @@
 import { getReports, getReportStats } from '@/lib/actions/reports';
 import ReportsPageClient from './page-client';
 
+// Force dynamic rendering for authentication
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Reports | Admin Panel',
   description: 'Manage user reports',

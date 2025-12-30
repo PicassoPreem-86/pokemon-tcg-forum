@@ -62,18 +62,52 @@ const createMockSupabaseClient = () => {
 // Mock Supabase server
 jest.mock('../supabase/server', () => ({
   createClient: jest.fn(),
+  createAdminClient: jest.fn(),
 }));
 
 describe('Thread Actions', () => {
   let mockSupabase: ReturnType<typeof createMockSupabaseClient>;
   const mockUser = { id: 'user-123', email: 'test@example.com' };
 
+  // Helper to create complete mocks for thread creation
+  const setupThreadCreationMocks = (customMocks: any = {}) => {
+    mockSupabase.from.mockImplementation((table: string) => {
+      // Categories table mock
+      if (table === 'categories') {
+        return customMocks.categories || {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({
+                data: { id: 'cat-123' },
+                error: null,
+              })),
+            })),
+          })),
+        };
+      }
+      // Custom mocks override defaults
+      if (customMocks[table]) {
+        return customMocks[table];
+      }
+      // Default empty mock
+      return {
+        insert: jest.fn(() => Promise.resolve({ error: null })),
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+          })),
+        })),
+      };
+    });
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockSupabase = createMockSupabaseClient();
 
-    const { createClient } = require('../supabase/server');
+    const { createClient, createAdminClient } = require('../supabase/server');
     createClient.mockResolvedValue(mockSupabase);
+    createAdminClient.mockReturnValue(mockSupabase);
 
     // Default: user is authenticated
     mockSupabase.auth.getUser.mockResolvedValue({
@@ -110,6 +144,18 @@ describe('Thread Actions', () => {
       };
 
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'categories') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                single: jest.fn(() => Promise.resolve({
+                  data: { id: validThreadData.categoryId },
+                  error: null,
+                })),
+              })),
+            })),
+          };
+        }
         if (table === 'threads') {
           return {
             insert: jest.fn(() => ({
@@ -194,20 +240,20 @@ describe('Thread Actions', () => {
     it('should sanitize HTML content', async () => {
       const { sanitizeHtml } = require('../sanitize');
 
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'threads') {
-          return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({
-                  data: { id: 't1', slug: 'test' },
-                  error: null,
-                })),
+      setupThreadCreationMocks({
+        threads: {
+          insert: jest.fn(() => ({
+            select: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({
+                data: { id: 't1', slug: 'test' },
+                error: null,
               })),
             })),
-          };
-        }
-        return { insert: jest.fn(() => Promise.resolve({ error: null })) };
+          })),
+        },
+        thread_tags: {
+          insert: jest.fn(() => Promise.resolve({ error: null })),
+        },
       });
 
       await createThread({
@@ -221,23 +267,20 @@ describe('Thread Actions', () => {
     it('should insert tags when provided', async () => {
       const insertMock = jest.fn(() => Promise.resolve({ error: null }));
 
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'threads') {
-          return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({
-                  data: { id: 't1', slug: 'test' },
-                  error: null,
-                })),
+      setupThreadCreationMocks({
+        threads: {
+          insert: jest.fn(() => ({
+            select: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({
+                data: { id: 't1', slug: 'test' },
+                error: null,
               })),
             })),
-          };
-        }
-        if (table === 'thread_tags') {
-          return { insert: insertMock };
-        }
-        return {};
+          })),
+        },
+        thread_tags: {
+          insert: insertMock,
+        },
       });
 
       await createThread(validThreadData);
@@ -257,36 +300,34 @@ describe('Thread Actions', () => {
       const mentionedUser = { id: 'user-456', username: 'mentioneduser' };
       extractAndValidateMentions.mockResolvedValue([mentionedUser]);
 
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'threads') {
-          return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({
-                  data: {
-                    id: 't1',
-                    slug: 'test',
-                    title: 'Test Thread',
-                  },
-                  error: null,
-                })),
-              })),
-            })),
-          };
-        }
-        if (table === 'profiles') {
-          return {
+      setupThreadCreationMocks({
+        threads: {
+          insert: jest.fn(() => ({
             select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({
-                  data: { username: 'testuser' },
-                  error: null,
-                })),
+              single: jest.fn(() => Promise.resolve({
+                data: {
+                  id: 't1',
+                  slug: 'test',
+                  title: 'Test Thread',
+                },
+                error: null,
               })),
             })),
-          };
-        }
-        return { insert: jest.fn(() => Promise.resolve({ error: null })) };
+          })),
+        },
+        profiles: {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({
+                data: { username: 'testuser' },
+                error: null,
+              })),
+            })),
+          })),
+        },
+        thread_tags: {
+          insert: jest.fn(() => Promise.resolve({ error: null })),
+        },
       });
 
       await createThread(validThreadData);
@@ -308,32 +349,30 @@ describe('Thread Actions', () => {
       // User mentions themselves
       extractAndValidateMentions.mockResolvedValue([{ id: mockUser.id, username: 'testuser' }]);
 
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'threads') {
-          return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({
-                  data: { id: 't1', slug: 'test', title: 'Test' },
-                  error: null,
-                })),
-              })),
-            })),
-          };
-        }
-        if (table === 'profiles') {
-          return {
+      setupThreadCreationMocks({
+        threads: {
+          insert: jest.fn(() => ({
             select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({
-                  data: { username: 'testuser' },
-                  error: null,
-                })),
+              single: jest.fn(() => Promise.resolve({
+                data: { id: 't1', slug: 'test', title: 'Test' },
+                error: null,
               })),
             })),
-          };
-        }
-        return { insert: jest.fn(() => Promise.resolve({ error: null })) };
+          })),
+        },
+        profiles: {
+          select: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({
+                data: { username: 'testuser' },
+                error: null,
+              })),
+            })),
+          })),
+        },
+        thread_tags: {
+          insert: jest.fn(() => Promise.resolve({ error: null })),
+        },
       });
 
       await createThread(validThreadData);
@@ -342,15 +381,17 @@ describe('Thread Actions', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(() => Promise.resolve({
-              data: null,
-              error: { message: 'Database error' },
+      setupThreadCreationMocks({
+        threads: {
+          insert: jest.fn(() => ({
+            select: jest.fn(() => ({
+              single: jest.fn(() => Promise.resolve({
+                data: null,
+                error: { message: 'Database error' },
+              })),
             })),
           })),
-        })),
+        },
       });
 
       const result = await createThread(validThreadData);

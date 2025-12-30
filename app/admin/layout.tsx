@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth/admin-check';
 import AdminLayoutClient from './layout-client';
 
+// Force dynamic rendering for authentication
+export const dynamic = 'force-dynamic';
+
 // Note: Icons are resolved in the client component (can't serialize React components)
 const adminNavItems = [
   { name: 'Dashboard', href: '/admin' },

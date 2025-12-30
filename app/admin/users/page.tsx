@@ -4,6 +4,9 @@ import { getAllUsers } from '@/lib/actions/admin';
 import AdminUsersClient from './page-client';
 import type { UserRole } from '@/lib/supabase/database.types';
 
+// Force dynamic rendering for authentication
+export const dynamic = 'force-dynamic';
+
 interface AdminUsersPageProps {
   searchParams: Promise<{ search?: string; role?: string; status?: string }>;
 }

@@ -3,6 +3,9 @@ import { requireAdmin } from '@/lib/auth/admin-check';
 import { getAdminStats, getRecentActivity, getTopContributors } from '@/lib/actions/admin';
 import AdminDashboardClient from './page-client';
 
+// Force dynamic rendering for authentication
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboard() {
   // Verify admin access
   await requireAdmin('/admin');
