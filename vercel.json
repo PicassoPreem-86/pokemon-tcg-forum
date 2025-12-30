@@ -5,24 +5,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": {
-      "description": "Your Supabase project URL",
-      "value": "https://your-project.supabase.co"
-    },
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
-      "description": "Your Supabase anonymous/public key",
-      "value": ""
-    },
-    "SUPABASE_SERVICE_ROLE_KEY": {
-      "description": "Your Supabase service role key (PRODUCTION ONLY - MUST be rotated!)",
-      "value": ""
-    },
-    "NEXT_PUBLIC_SITE_URL": {
-      "description": "Your production site URL",
-      "value": "https://your-domain.vercel.app"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
