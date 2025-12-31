@@ -121,9 +121,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                   src={thread.author.avatar_url || '/images/avatars/default.png'}
                   alt={thread.author.username}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/avatars/default.png';
-                  }}
                 />
               </div>
               <div className="thread-content">
