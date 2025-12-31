@@ -3,7 +3,7 @@ import { SiteConfig, NavItem } from './types';
 export const SITE_CONFIG: SiteConfig = {
   name: 'TCG Gossip',
   tagline: 'The Trading Card Community',
-  description: 'Join the hottest trading card community. Discuss Pokemon, Yu-Gi-Oh, Magic, sports cards, deck building, tournaments, trading, and more with fellow collectors.',
+  description: 'Join the premier trading card community. Discuss all TCGs - Pokemon, Yu-Gi-Oh, Magic, sports cards, and more. Share collections, market insights, grading tips, and best pulls with fellow collectors.',
   url: process.env.NEXT_PUBLIC_SITE_URL || 'https://tcggossip.com',
   twitter: '@tcggossip',
   itemsPerPage: 20,
@@ -12,10 +12,8 @@ export const SITE_CONFIG: SiteConfig = {
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Home', href: '/' },
   { label: 'Forums', href: '/forums' },
-  { label: 'Trading', href: '/trading' },
-  { label: 'Deck Building', href: '/deck-building' },
   { label: 'News', href: '/news' },
-  { label: 'Price Guides', href: '/price-guides' },
+  { label: 'Card Database', href: '/cards' },
 ];
 
 export const FOOTER_LINKS = {
@@ -63,3 +61,36 @@ export const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
   newbie: 'New Collector',
 };
+
+// Multi-Game Configuration (Pokemon + One Piece)
+export interface GameConfig {
+  name: string;
+  shortName: string;
+  icon: string;
+  color: string;
+  slug: string;
+  description: string;
+}
+
+export const SUPPORTED_GAMES: Record<string, GameConfig> = {
+  pokemon: {
+    name: 'Pokemon TCG',
+    shortName: 'Pokemon',
+    icon: '⚡',
+    color: '#FFCB05',
+    slug: 'pokemon',
+    description: 'Catch \'em all! Pokemon Trading Card Game discussion and collecting'
+  },
+  onepiece: {
+    name: 'One Piece TCG',
+    shortName: 'One Piece',
+    icon: '🏴‍☠️',
+    color: '#FF6B35',
+    slug: 'onepiece',
+    description: 'Set sail! One Piece Card Game strategies and collection'
+  }
+};
+
+export const DEFAULT_GAME = 'all'; // Show all games by default
+
+export const GAME_ORDER = ['pokemon', 'onepiece'] as const;

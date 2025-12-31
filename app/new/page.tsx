@@ -349,27 +349,94 @@ function NewThreadContent() {
           <label htmlFor="category" className="form-label">
             Category <span className="required">*</span>
           </label>
-          <div className="category-select-grid">
-            {CATEGORIES.map(category => (
-              <button
-                key={category.id}
-                type="button"
-                className={`category-option ${selectedCategory === category.id ? 'selected' : ''}`}
-                onClick={() => setSelectedCategory(category.id)}
-                style={{
-                  '--category-color': category.color,
-                  borderColor: selectedCategory === category.id ? category.color : undefined,
-                  backgroundColor: selectedCategory === category.id ? `${category.color}15` : undefined
-                } as React.CSSProperties}
-              >
-                <span className="category-dot" style={{ backgroundColor: category.color }} />
-                <span className="category-name">{category.name}</span>
-                {selectedCategory === category.id && (
-                  <span className="category-check">✓</span>
-                )}
-              </button>
-            ))}
+
+          {/* Universal Categories */}
+          <div className="category-group">
+            <div className="category-group-header">
+              <span className="category-group-icon">🎴</span>
+              <h3>Universal (All TCGs)</h3>
+            </div>
+            <div className="category-select-grid">
+              {CATEGORIES.slice(0, 5).map(category => (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={`category-option ${selectedCategory === category.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedCategory(category.id)}
+                  style={{
+                    '--category-color': category.color,
+                    borderColor: selectedCategory === category.id ? category.color : undefined,
+                    backgroundColor: selectedCategory === category.id ? `${category.color}15` : undefined
+                  } as React.CSSProperties}
+                >
+                  <span className="category-dot" style={{ backgroundColor: category.color }} />
+                  <span className="category-name">{category.name}</span>
+                  {selectedCategory === category.id && (
+                    <span className="category-check">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Pokemon Categories */}
+          <div className="category-group">
+            <div className="category-group-header">
+              <span className="category-group-icon">⚡</span>
+              <h3>Pokemon TCG</h3>
+            </div>
+            <div className="category-select-grid">
+              {CATEGORIES.slice(5, 7).map(category => (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={`category-option ${selectedCategory === category.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedCategory(category.id)}
+                  style={{
+                    '--category-color': category.color,
+                    borderColor: selectedCategory === category.id ? category.color : undefined,
+                    backgroundColor: selectedCategory === category.id ? `${category.color}15` : undefined
+                  } as React.CSSProperties}
+                >
+                  <span className="category-dot" style={{ backgroundColor: category.color }} />
+                  <span className="category-name">{category.name}</span>
+                  {selectedCategory === category.id && (
+                    <span className="category-check">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* One Piece Categories */}
+          <div className="category-group">
+            <div className="category-group-header">
+              <span className="category-group-icon">🏴‍☠️</span>
+              <h3>One Piece TCG</h3>
+            </div>
+            <div className="category-select-grid">
+              {CATEGORIES.slice(7, 9).map(category => (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={`category-option ${selectedCategory === category.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedCategory(category.id)}
+                  style={{
+                    '--category-color': category.color,
+                    borderColor: selectedCategory === category.id ? category.color : undefined,
+                    backgroundColor: selectedCategory === category.id ? `${category.color}15` : undefined
+                  } as React.CSSProperties}
+                >
+                  <span className="category-dot" style={{ backgroundColor: category.color }} />
+                  <span className="category-name">{category.name}</span>
+                  {selectedCategory === category.id && (
+                    <span className="category-check">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {errors.category && (
             <span className="form-error">
               <AlertCircle size={14} /> {errors.category}
@@ -747,6 +814,30 @@ You can use Markdown formatting:
 
       {/* Guidelines Sidebar */}
       <aside className="new-thread-sidebar">
+        <div className="guidelines-card" style={{
+          background: 'rgba(139, 92, 246, 0.1)',
+          border: '1px solid rgba(139, 92, 246, 0.3)',
+          borderRadius: '8px',
+          padding: '16px',
+          marginBottom: '16px'
+        }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>💡</span>
+            Category Guide
+          </h3>
+          <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#e2e8f0' }}>
+            <p style={{ marginBottom: '8px' }}>
+              <strong>🎴 Universal:</strong> Topics that apply to all TCGs (collecting, grading, market, pulls, news)
+            </p>
+            <p style={{ marginBottom: '8px' }}>
+              <strong>⚡ Pokemon:</strong> Pokemon-specific mechanics and competitive play
+            </p>
+            <p style={{ marginBottom: '0' }}>
+              <strong>🏴‍☠️ One Piece:</strong> One Piece-specific deck building and strategies
+            </p>
+          </div>
+        </div>
+
         <div className="guidelines-card">
           <h3>Posting Guidelines</h3>
           <ul>

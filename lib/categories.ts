@@ -1,4 +1,4 @@
-// Elite Fourum Style Categories - Pokemon TCG Theme
+// TCG Gossip - Consolidated Multi-Game Categories (9 total)
 export interface Subcategory {
   id: string;
   name: string;
@@ -18,27 +18,15 @@ export interface Category {
 }
 
 export const CATEGORIES: Category[] = [
-  {
-    id: 'general',
-    slug: 'general',
-    name: 'General',
-    description: 'General discussion about Pokemon TCG and the community',
-    color: '#6366F1',
-    icon: 'MessageSquare',
-    threadCount: 4523,
-    postCount: 89234,
-    subcategories: [
-      { id: 'general-intro', name: 'Introductions', description: 'New member introductions' },
-      { id: 'general-offtopic', name: 'Off-Topic', description: 'Non-Pokemon discussions' },
-      { id: 'general-feedback', name: 'Site Feedback', description: 'Suggestions and feedback' },
-    ],
-  },
+  // ============================================
+  // UNIVERSAL CATEGORIES (All TCGs) - 5 total
+  // ============================================
   {
     id: 'collecting',
     slug: 'collecting',
-    name: 'Collecting',
-    description: 'Card collections, pulls, and showcase your binders',
-    color: '#10B981',
+    name: 'Collecting & Showcases',
+    description: 'Show off your collection from any TCG - Pokemon, One Piece, and more',
+    color: '#F59E0B',
     icon: 'Star',
     threadCount: 3847,
     postCount: 67892,
@@ -46,57 +34,90 @@ export const CATEGORIES: Category[] = [
   {
     id: 'market',
     slug: 'market',
-    name: 'Market',
-    description: 'Price checks, market trends, and investment discussion',
-    color: '#F59E0B',
+    name: 'Market & Prices',
+    description: 'Price checks, market trends, and investment discussion across all TCGs',
+    color: '#06B6D4',
     icon: 'TrendingUp',
     threadCount: 2156,
     postCount: 34567,
-    subcategories: [
-      { id: 'market-prices', name: 'Price Checks', description: 'Get valuations on your cards' },
-      { id: 'market-trends', name: 'Market Trends', description: 'Discussion of market movements' },
-      { id: 'market-invest', name: 'Investment', description: 'Long-term card investments' },
-    ],
   },
   {
     id: 'grading',
     slug: 'grading',
-    name: 'Grading',
-    description: 'PSA, CGC, BGS - grading services and submissions',
-    color: '#EF4444',
+    name: 'Grading & Authentication',
+    description: 'PSA, BGS, CGC grading help and card authentication for all games',
+    color: '#8B5CF6',
     icon: 'Award',
     threadCount: 1890,
     postCount: 28945,
   },
   {
-    id: 'articles',
-    slug: 'articles',
-    name: 'Articles',
-    description: 'In-depth guides, tutorials, and community content',
-    color: '#8B5CF6',
-    icon: 'BookOpen',
-    threadCount: 567,
-    postCount: 12345,
+    id: 'pulls',
+    slug: 'pulls',
+    name: 'Pulls & Pack Openings',
+    description: 'Share your best pulls and pack opening experiences from any TCG',
+    color: '#10B981',
+    icon: 'Package',
+    threadCount: 4521,
+    postCount: 89234,
   },
   {
     id: 'news',
     slug: 'news',
-    name: 'News & Links',
-    description: 'Latest Pokemon TCG news, set reveals, and announcements',
-    color: '#EC4899',
+    name: 'TCG News & Updates',
+    description: 'Latest news, set releases, and announcements from all trading card games',
+    color: '#3B82F6',
     icon: 'Newspaper',
     threadCount: 892,
     postCount: 45678,
   },
+
+  // ============================================
+  // POKEMON TCG SPECIFIC - 2 total
+  // ============================================
   {
-    id: 'trade',
-    slug: 'buy-trade',
-    name: 'Buy & Trade',
-    description: 'Buy, sell, and trade Pokemon cards with the community',
-    color: '#06B6D4',
-    icon: 'ArrowLeftRight',
-    threadCount: 5678,
+    id: 'pokemon-general',
+    slug: 'pokemon-general',
+    name: 'Pokemon - General Discussion',
+    description: 'Chat about anything Pokemon TCG related',
+    color: '#EC4899',
+    icon: 'MessageSquare',
+    threadCount: 5234,
     postCount: 123456,
+  },
+  {
+    id: 'pokemon-competitive',
+    slug: 'pokemon-competitive',
+    name: 'Pokemon - Competitive Play',
+    description: 'Deck building, strategies, meta discussion, and tournament prep',
+    color: '#FFCB05',
+    icon: 'Trophy',
+    threadCount: 3456,
+    postCount: 78901,
+  },
+
+  // ============================================
+  // ONE PIECE TCG SPECIFIC - 2 total
+  // ============================================
+  {
+    id: 'op-general',
+    slug: 'op-general',
+    name: 'One Piece - General Discussion',
+    description: 'Chat about anything One Piece TCG related',
+    color: '#FF6B35',
+    icon: 'MessageSquare',
+    threadCount: 2341,
+    postCount: 45678,
+  },
+  {
+    id: 'op-deck-building',
+    slug: 'op-deck-building',
+    name: 'One Piece - Deck Building',
+    description: 'Deck lists, leader strategies, and competitive One Piece play',
+    color: '#4ECDC4',
+    icon: 'Layers',
+    threadCount: 1567,
+    postCount: 23456,
   },
 ];
 
