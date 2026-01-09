@@ -2099,6 +2099,10 @@
 
 .content-container {
   touch-action: pan-y;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+  width: 100%;
 }
 
 .thread-list {
@@ -3412,6 +3416,8 @@
 
 .main-content {
   position: relative;
+  min-height: 100vh;
+  /* margin-left is applied via media query for responsive layout */
 }
 
 .page-wrapper {
@@ -5118,4 +5124,95 @@ body {
 
 [id] {
   scroll-margin-top: 80px;
+}
+
+/* ============================================
+   RESPONSIVE LAYOUT FIXES
+   ============================================ */
+
+/* Desktop: Ensure main content doesn't overlap sidebar */
+@media (min-width: 768px) {
+  .main-content {
+    margin-left: 240px;
+    padding: 20px;
+  }
+
+  .sidebar {
+    display: block;
+  }
+
+  /* 2 columns on tablet/small desktop */
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Large desktop: 3 column grid for categories */
+@media (min-width: 1200px) {
+  .categories-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Tablet: Adjust sidebar width */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .sidebar {
+    width: 220px;
+  }
+
+  .main-content {
+    margin-left: 220px;
+  }
+}
+
+/* Mobile: Hide sidebar, full-width content */
+@media (max-width: 767px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 16px;
+    width: 100%;
+  }
+
+  .page-wrapper {
+    display: block;
+  }
+
+  /* Adjust stats grid for mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  /* Stack category cards on mobile */
+  .categories-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Adjust hero banner for mobile */
+  .hero-banner-full {
+    margin: 0 -16px;
+    border-radius: 0;
+  }
+
+  /* Smaller thread items on mobile */
+  .thread-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .thread-stats {
+    flex-direction: row;
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
