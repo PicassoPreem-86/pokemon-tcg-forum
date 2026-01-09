@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { searchThreads, searchUsers, getAllCategories } from '@/lib/db/queries';
 import SearchPageClient from '@/components/search/SearchPageClient';
 import { Search } from 'lucide-react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function SearchFallback() {
   return (
@@ -38,12 +39,14 @@ async function SearchContent({ searchParams }: { searchParams: { q?: string } })
   ]);
 
   return (
-    <SearchPageClient
-      initialQuery={query}
-      initialThreads={threads}
-      initialUsers={users}
-      categories={categories}
-    />
+    <ErrorBoundary>
+      <SearchPageClient
+        initialQuery={query}
+        initialThreads={threads}
+        initialUsers={users}
+        categories={categories}
+      />
+    </ErrorBoundary>
   );
 }
 

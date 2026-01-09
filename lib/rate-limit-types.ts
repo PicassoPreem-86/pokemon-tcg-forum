@@ -60,4 +60,12 @@ export const RATE_LIMIT_CONFIGS: Record<string, RateLimitConfig> = {
     maxRequests: 10,
     exemptRoles: ['moderator', 'admin'],
   },
+
+  // Password reset requests: 3 per 15 minutes
+  // Prevents password reset spam and abuse
+  password_reset: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 3,
+    // No exemptions - everyone should be rate limited for security
+  },
 };

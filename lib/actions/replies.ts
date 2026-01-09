@@ -13,10 +13,19 @@ import type { ReplyResult } from './action-types';
 // Re-export types for consumers
 export type { ReplyResult } from './action-types';
 
+interface ReplyImage {
+  id: string;
+  url: string;
+  alt?: string;
+  width?: number;
+  height?: number;
+}
+
 interface CreateReplyData {
   threadId: string;
   content: string;
   parentReplyId?: string | null;
+  images?: ReplyImage[];
 }
 
 export async function createReply(data: CreateReplyData): Promise<ReplyResult> {
@@ -38,7 +47,7 @@ export async function createReply(data: CreateReplyData): Promise<ReplyResult> {
     };
   }
 
-  const { threadId, content, parentReplyId } = data;
+  const { threadId, content, parentReplyId, images } = data;
 
   // Validate inputs
   if (!threadId) {
@@ -47,6 +56,11 @@ export async function createReply(data: CreateReplyData): Promise<ReplyResult> {
 
   if (!content || content.trim().length < 5) {
     return { success: false, error: 'Reply must be at least 5 characters' };
+  }
+
+  // Validate images (max 4)
+  if (images && images.length > 4) {
+    return { success: false, error: 'Maximum 4 images allowed per reply' };
   }
 
   // Check if thread exists and isn't locked
@@ -77,6 +91,7 @@ export async function createReply(data: CreateReplyData): Promise<ReplyResult> {
       author_id: user.id,
       content: sanitizedContent,
       parent_reply_id: parentReplyId || null,
+      images: images ? JSON.stringify(images) : '[]',
     })
     .select()
     .single() as { data: Reply | null; error: Error | null };

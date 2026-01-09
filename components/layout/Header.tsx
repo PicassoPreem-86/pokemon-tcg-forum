@@ -44,6 +44,11 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full">
+      {/* Skip to main content link - WCAG 2.4.1 */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
       {/* Promotional Banner */}
       <div className="bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-600 text-white py-2 px-4 text-center text-sm font-medium">
         <span className="flex items-center justify-center gap-2">
@@ -122,16 +127,19 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
               {/* Search */}
               <div className="relative">
                 {isSearchOpen ? (
-                  <form onSubmit={handleSearch} className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center">
+                  <form onSubmit={handleSearch} className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center" role="search">
+                    <label htmlFor="search-input" className="sr-only">Search forums</label>
                     <input
+                      id="search-input"
                       type="text"
                       placeholder="Search forums..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-64 pl-10 pr-4 py-2 bg-dark-800 border border-dark-600 rounded-lg text-sm text-white placeholder-dark-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                       autoFocus
+                      aria-label="Search forums"
                     />
-                    <Search className="absolute left-3 h-4 w-4 text-dark-400" />
+                    <Search className="absolute left-3 h-4 w-4 text-dark-400" aria-hidden="true" />
                     <button
                       type="button"
                       onClick={() => {
@@ -139,17 +147,18 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                         setSearchQuery('');
                       }}
                       className="absolute right-2 p-1 hover:bg-dark-700 rounded"
+                      aria-label="Close search"
                     >
-                      <X className="h-4 w-4 text-dark-400" />
+                      <X className="h-4 w-4 text-dark-400" aria-hidden="true" />
                     </button>
                   </form>
                 ) : (
                   <button
                     onClick={() => setIsSearchOpen(true)}
                     className="p-2 rounded-lg hover:bg-dark-800 transition-colors"
-                    aria-label="Search"
+                    aria-label="Open search"
                   >
-                    <Search className="h-5 w-5 text-dark-300" />
+                    <Search className="h-5 w-5 text-dark-300" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -161,7 +170,7 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                 aria-label="Keyboard shortcuts"
                 title="Keyboard shortcuts (?)"
               >
-                <Keyboard className="h-5 w-5 text-dark-300" />
+                <Keyboard className="h-5 w-5 text-dark-300" aria-hidden="true" />
               </button>
 
               {/* Notifications - Only show when authenticated (after hydration) */}
@@ -169,9 +178,15 @@ export default function Header({ onMenuToggle, isMenuOpen }: HeaderProps) {
                 <button
                   className="relative p-2 rounded-lg hover:bg-dark-800 transition-colors"
                   aria-label="Notifications"
+                  aria-describedby="notification-badge"
                 >
-                  <Bell className="h-5 w-5 text-dark-300" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-fuchsia-500 rounded-full" />
+                  <Bell className="h-5 w-5 text-dark-300" aria-hidden="true" />
+                  <span
+                    id="notification-badge"
+                    className="absolute top-1 right-1 w-2 h-2 bg-fuchsia-500 rounded-full"
+                    role="status"
+                    aria-label="You have unread notifications"
+                  />
                 </button>
               )}
 

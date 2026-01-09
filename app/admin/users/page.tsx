@@ -45,9 +45,11 @@ export default async function AdminUsers({ searchParams }: AdminUsersPageProps) 
     email: 'email@hidden.com', // Don't expose emails in UI
     avatar: profile.avatar_url || '/images/avatars/default.png',
     role: profile.role,
-    status: 'active', // TODO: Add status field to profiles
+    status: profile.status || 'active',
     joinDate: new Date(profile.created_at).toLocaleDateString(),
-    lastActive: profile.updated_at
+    lastActive: profile.last_seen
+      ? formatTimeAgo(new Date(profile.last_seen))
+      : profile.updated_at
       ? formatTimeAgo(new Date(profile.updated_at))
       : 'Never',
     posts: profile.post_count,

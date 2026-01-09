@@ -137,7 +137,7 @@ export default async function HomePage() {
       </aside>
 
       {/* Main Content */}
-      <main className="main-content">
+      <main id="main-content" className="main-content" tabIndex={-1}>
         <HomePageClient>
           {/* Content Container */}
           <div className="content-container">
@@ -186,20 +186,20 @@ export default async function HomePage() {
             </div>
 
             {/* Tabs */}
-            <div className="tabs">
-              <Link href="/" className="tab active">
-                <Clock className="w-4 h-4 inline mr-2" />
+            <nav className="tabs" role="navigation" aria-label="Forum filters">
+              <Link href="/" className="tab active" aria-current="page">
+                <Clock className="w-4 h-4 inline mr-2" aria-hidden="true" />
                 Latest
               </Link>
               <Link href="/hot" className="tab">
-                <Flame className="w-4 h-4 inline mr-2" />
+                <Flame className="w-4 h-4 inline mr-2" aria-hidden="true" />
                 Hot
               </Link>
               <Link href="/categories" className="tab">
-                <Grid3X3 className="w-4 h-4 inline mr-2" />
+                <Grid3X3 className="w-4 h-4 inline mr-2" aria-hidden="true" />
                 Categories
               </Link>
-            </div>
+            </nav>
 
             {/* Categories Grid */}
             <h2 className="sr-only">Forum Categories</h2>
@@ -232,10 +232,10 @@ export default async function HomePage() {
               <>
                 <div className="section-header">
                   <h2 className="section-title">
-                    <Zap className="w-5 h-5 lightning-icon" />
+                    <Zap className="w-5 h-5 lightning-icon" aria-hidden="true" />
                     Latest Discussions
                   </h2>
-                  <Link href="/new" className="btn btn-primary">
+                  <Link href="/new" className="btn btn-primary" aria-label="Create new topic">
                     + New Topic
                   </Link>
                 </div>
@@ -254,18 +254,19 @@ export default async function HomePage() {
                       <div className="thread-content">
                         <div className="thread-title-row">
                           {thread.is_pinned && (
-                            <span className="badge badge-pinned">
-                              <Pin className="w-3 h-3 inline" /> Pinned
+                            <span className="badge badge-pinned" role="status" aria-label="Pinned thread">
+                              <Pin className="w-3 h-3 inline" aria-hidden="true" /> Pinned
                             </span>
                           )}
                           {thread.is_hot && (
-                            <span className="badge badge-hot">
-                              <Flame className="w-3 h-3 inline" /> Hot
+                            <span className="badge badge-hot" role="status" aria-label="Hot trending thread">
+                              <Flame className="w-3 h-3 inline" aria-hidden="true" /> Hot
                             </span>
                           )}
                           <span
                             className="thread-tag"
                             style={{ backgroundColor: thread.category.color, color: 'white' }}
+                            aria-label={`Category: ${thread.category.name}`}
                           >
                             {thread.category.name}
                           </span>
@@ -293,9 +294,9 @@ export default async function HomePage() {
 
                 {/* Load More */}
                 <div className="text-center mt-6">
-                  <Link href="/hot" className="btn btn-secondary">
+                  <Link href="/hot" className="btn btn-secondary" aria-label="Load more topics">
                     Load More Topics
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 w-4" aria-hidden="true" />
                   </Link>
                 </div>
               </>
@@ -313,11 +314,11 @@ export default async function HomePage() {
             {/* Popular Tags Widget */}
             {popularTags.length > 0 && (
               <div className="online-widget mt-6">
-                <div className="online-title flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-purple-400" />
+                <h3 className="online-title flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-purple-400" aria-hidden="true" />
                   Popular Tags
-                </div>
-                <div className="flex flex-wrap gap-2 mt-3">
+                </h3>
+                <div className="flex flex-wrap gap-2 mt-3" role="list" aria-label="Popular tags">
                   {popularTags.map(({ tag, count }) => (
                     <Link
                       key={tag}
@@ -327,10 +328,12 @@ export default async function HomePage() {
                         backgroundColor: 'rgba(139, 92, 246, 0.1)',
                         color: '#a78bfa',
                       }}
+                      role="listitem"
+                      aria-label={`View ${tag} tag with ${count} threads`}
                     >
-                      <Hash className="w-3 h-3" />
+                      <Hash className="w-3 h-3" aria-hidden="true" />
                       {tag}
-                      <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>({count})</span>
+                      <span style={{ color: '#6b7280', fontSize: '0.75rem' }} aria-hidden="true">({count})</span>
                     </Link>
                   ))}
                 </div>

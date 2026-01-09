@@ -212,33 +212,128 @@ export async function getCurrentUser() {
 }
 
 export async function resetPassword(email: string): Promise<AuthResult> {
-  const supabase = await createClient();
-  const headersList = await headers();
-  const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  try {
+    const supabase = await createClient();
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/reset-password`,
-  });
+    // SECURITY: Check rate limit for password reset requests
+    // Use email as identifier for rate limiting (prevents spamming)
+    const rateLimitResult = await checkRateLimit(email, 'password_reset');
+    if (!rateLimitResult.allowed) {
+      const retryTime = await formatRetryTime(rateLimitResult.retryAfter || 0);
+      return {
+        success: false,
+        error: `Too many password reset requests. Please wait ${retryTime} before trying again.`,
+      };
+    }
 
-  if (error) {
+    const headersList = await headers();
+    const origin = headersList.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/auth/reset-password`,
+    });
+
+    if (error) {
+      console.error('Password reset error:', error);
+      return { success: false, error: error.message };
+    }
+
+    // Log password reset request attempt
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single() as { data: { id: string } | null };
+
+      if (profile) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('audit_logs').insert({
+          user_id: profile.id,
+          action: 'password_reset_requested',
+          details: { email, timestamp: new Date().toISOString() },
+        });
+      }
+    } catch (logError) {
+      // Don't fail the reset if logging fails
+      console.error('Failed to log password reset attempt:', logError);
+    }
+
+    return { success: true };
+  } catch (error) {
     console.error('Password reset error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'An error occurred while processing your request. Please try again.' };
   }
-
-  return { success: true };
 }
 
 export async function updatePassword(newPassword: string): Promise<AuthResult> {
-  const supabase = await createClient();
+  try {
+    const supabase = await createClient();
 
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword,
-  });
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (error) {
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters' };
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      console.error('Password update error:', error);
+      return { success: false, error: error.message };
+    }
+
+    // Log successful password change
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('audit_logs').insert({
+        user_id: user.id,
+        action: 'password_changed',
+        details: { timestamp: new Date().toISOString() },
+      });
+    } catch (logError) {
+      // Don't fail the update if logging fails
+      console.error('Failed to log password change:', logError);
+    }
+
+    // Send confirmation email
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
+      if (profile && user.email) {
+        // Note: This would require a custom email template or service
+        // For now, we log the attempt
+        console.log('Password changed confirmation email would be sent to:', user.email);
+
+        // Create a notification for the user
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          user_id: user.id,
+          type: 'security',
+          title: 'Password Changed',
+          message: 'Your password has been successfully changed. If you did not make this change, please contact support immediately.',
+          read: false,
+        });
+      }
+    } catch (notificationError) {
+      // Don't fail the update if notification fails
+      console.error('Failed to send password change notification:', notificationError);
+    }
+
+    return { success: true };
+  } catch (error) {
     console.error('Password update error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'An error occurred while updating your password. Please try again.' };
   }
-
-  return { success: true };
 }

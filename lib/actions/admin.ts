@@ -312,9 +312,29 @@ export async function deleteUser(
 
       await logAdminAction('hard_delete_user', { userId }, adminProfile);
     } else {
-      // Soft delete - mark as deleted
-      // TODO: Add deleted_at column to profiles table
+      // Soft delete - mark as deleted with timestamp
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({
+          deleted_at: new Date().toISOString(),
+          status: 'banned', // Mark as banned when soft deleted
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (error) {
+        throw new Error(`Failed to soft delete user: ${error.message}`);
+      }
+
       await logAdminAction('soft_delete_user', { userId }, adminProfile);
+      await logModerationAction(
+        'ban_user',
+        userId,
+        'user',
+        'User account soft deleted',
+        adminProfile
+      );
     }
 
     revalidatePath('/admin/users');

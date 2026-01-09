@@ -241,9 +241,25 @@ export const searchThreads = cache(async (query: string, limit: number = 20): Pr
 export const getOnlineUsers = cache(async (limit: number = 20): Promise<string[]> => {
   const supabase = await createClient();
 
-  // For now, return empty array until we implement last_seen tracking
-  // TODO: Add last_seen column to profiles table
-  return [];
+  // Get users active in the last 15 minutes
+  const fifteenMinutesAgo = new Date();
+  fifteenMinutesAgo.setMinutes(fifteenMinutesAgo.getMinutes() - 15);
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('username')
+    .gte('last_seen', fifteenMinutesAgo.toISOString())
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .order('last_seen', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching online users:', error);
+    return [];
+  }
+
+  return (data || []).map((user: any) => user.username);
 });
 
 /**
@@ -341,11 +357,22 @@ export const getForumStats = cache(async (): Promise<ForumStats> => {
 
   const newest = newestResult.data ? (newestResult.data as any).username as string : 'No members yet';
 
+  // Get online users count (active in last 15 minutes)
+  const fifteenMinutesAgo = new Date();
+  fifteenMinutesAgo.setMinutes(fifteenMinutesAgo.getMinutes() - 15);
+
+  const { count: onlineCount } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .gte('last_seen', fifteenMinutesAgo.toISOString())
+    .eq('status', 'active')
+    .is('deleted_at', null);
+
   return {
     totalMembers: totalMembers || 0,
     totalThreads: totalThreads || 0,
     totalPosts: (totalThreads || 0) + (totalReplies || 0),
-    onlineNow: 0, // TODO: Implement online user tracking
+    onlineNow: onlineCount || 0,
     newestMember: newest,
   };
 });

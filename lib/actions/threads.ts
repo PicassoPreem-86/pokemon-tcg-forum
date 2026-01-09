@@ -2,11 +2,12 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import type { Thread, Profile } from '@/lib/supabase/database.types';
 import { sanitizeHtml, createSafeExcerpt } from '@/lib/sanitize';
 import { createNotification } from './notifications';
 import { extractAndValidateMentions } from '@/lib/mentions';
 import { checkRateLimit, formatRetryTime } from '@/lib/rate-limit';
+import { createThreadSchema, updateThreadSchema, validateInput } from '@/lib/validation';
+import { createTypedQueries } from '@/lib/supabase/typed-queries';
 // Import types from separate file (Next.js 15/16 'use server' files can only export async functions)
 import type { ThreadResult } from './action-types';
 
@@ -54,28 +55,18 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
     };
   }
 
-  const { title, content, categoryId, tags } = data;
-
-  // Validate inputs
-  if (!title || title.trim().length < 10) {
-    return { success: false, error: 'Title must be at least 10 characters' };
+  // SECURITY: Validate all inputs with comprehensive validation
+  const validation = validateInput(createThreadSchema, data);
+  if (!validation.success || !validation.data) {
+    const firstError = Object.values(validation.errors || {})[0];
+    return { success: false, error: firstError || 'Invalid input data' };
   }
 
-  if (!content || content.trim().length < 20) {
-    return { success: false, error: 'Content must be at least 20 characters' };
-  }
-
-  if (!categoryId) {
-    return { success: false, error: 'Category is required' };
-  }
+  const { title, content, categoryId, tags } = validation.data;
 
   // Look up category UUID by slug (frontend sends slug like 'general', db uses UUID)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: category, error: categoryError } = await (supabase as any)
-    .from('categories')
-    .select('id')
-    .eq('slug', categoryId)
-    .single() as { data: { id: string } | null; error: Error | null };
+  const queries = createTypedQueries(supabase);
+  const { data: category, error: categoryError } = await queries.categories.getCategoryById(categoryId);
 
   if (categoryError || !category) {
     console.error('Category lookup error:', categoryError);
@@ -91,19 +82,15 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
 
   // Create the thread using admin client (bypasses RLS since user is already verified)
   const adminClient = createAdminClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: thread, error } = await (adminClient as any)
-    .from('threads')
-    .insert({
-      slug,
-      title: title.trim(),
-      content: sanitizedContent,
-      excerpt,
-      category_id: categoryUUID,
-      author_id: user.id,
-    })
-    .select()
-    .single() as { data: Thread | null; error: Error | null };
+  const adminQueries = createTypedQueries(adminClient);
+  const { data: thread, error } = await adminQueries.threads.createThread({
+    slug,
+    title: title.trim(),
+    content: sanitizedContent,
+    excerpt,
+    category_id: categoryUUID,
+    author_id: user.id,
+  });
 
   if (error) {
     console.error('Create thread error:', error);
@@ -111,14 +98,8 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
   }
 
   // Add tags if provided
-  if (tags && tags.length > 0) {
-    const tagInserts = tags.map(tag => ({
-      thread_id: thread!.id,
-      tag,
-    }));
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (adminClient as any).from('thread_tags').insert(tagInserts);
+  if (tags && tags.length > 0 && thread) {
+    await adminQueries.tags.createThreadTags(thread.id, tags);
   }
 
   // Process @mentions in the thread content
@@ -128,12 +109,7 @@ export async function createThread(data: CreateThreadData): Promise<ThreadResult
 
     if (mentionedUsers.length > 0 && thread) {
       // Get actor username for mention notifications
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: actorProfile } = await (supabase as any)
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .single() as { data: { username: string } | null };
+      const { data: actorProfile } = await queries.profiles.getProfileById(user.id);
 
       if (actorProfile) {
         // Create mention notification for each mentioned user
@@ -183,31 +159,25 @@ export async function updateThread(data: UpdateThreadData): Promise<ThreadResult
     return { success: false, error: 'You must be logged in to edit a thread' };
   }
 
-  const { threadId, title, content } = data;
-
-  if (!threadId) {
-    return { success: false, error: 'Thread ID is required' };
+  // SECURITY: Validate all inputs with comprehensive validation
+  const validation = validateInput(updateThreadSchema, data);
+  if (!validation.success || !validation.data) {
+    const firstError = Object.values(validation.errors || {})[0];
+    return { success: false, error: firstError || 'Invalid input data' };
   }
 
+  const { threadId, title, content } = validation.data;
+
   // Check ownership
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: thread } = await (supabase as any)
-    .from('threads')
-    .select('author_id, slug, category_id')
-    .eq('id', threadId)
-    .single() as { data: Pick<Thread, 'author_id' | 'slug' | 'category_id'> | null };
+  const queries = createTypedQueries(supabase);
+  const { data: thread } = await queries.threads.getThreadById(threadId, 'author_id, slug, category_id');
 
   if (!thread) {
     return { success: false, error: 'Thread not found' };
   }
 
   // Check if user is author or moderator/admin
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profile } = await (supabase as any)
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single() as { data: Pick<Profile, 'role'> | null };
+  const { data: profile } = await queries.profiles.getProfileRole(user.id);
 
   const isOwner = thread.author_id === user.id;
   const isMod = profile?.role === 'moderator' || profile?.role === 'admin';
@@ -216,29 +186,16 @@ export async function updateThread(data: UpdateThreadData): Promise<ThreadResult
     return { success: false, error: 'You do not have permission to edit this thread' };
   }
 
-  // Validate inputs
-  if (!title || title.trim().length < 10) {
-    return { success: false, error: 'Title must be at least 10 characters' };
-  }
-
-  if (!content || content.trim().length < 20) {
-    return { success: false, error: 'Content must be at least 20 characters' };
-  }
-
   // SECURITY: Sanitize HTML content to prevent XSS attacks
   const sanitizedContent = sanitizeHtml(content.trim());
   const excerpt = createSafeExcerpt(sanitizedContent, 200);
 
   // Update the thread
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('threads')
-    .update({
-      title: title.trim(),
-      content: sanitizedContent,
-      excerpt,
-    })
-    .eq('id', threadId);
+  const { error } = await queries.threads.updateThread(threadId, {
+    title: title.trim(),
+    content: sanitizedContent,
+    excerpt,
+  });
 
   if (error) {
     console.error('Update thread error:', error);
@@ -262,24 +219,15 @@ export async function deleteThread(threadId: string): Promise<ThreadResult> {
   }
 
   // Check ownership
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: thread } = await (supabase as any)
-    .from('threads')
-    .select('author_id, category_id')
-    .eq('id', threadId)
-    .single() as { data: Pick<Thread, 'author_id' | 'category_id'> | null };
+  const queries = createTypedQueries(supabase);
+  const { data: thread } = await queries.threads.getThreadById(threadId, 'author_id, category_id');
 
   if (!thread) {
     return { success: false, error: 'Thread not found' };
   }
 
   // Check if user is author or moderator/admin
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profile } = await (supabase as any)
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single() as { data: Pick<Profile, 'role'> | null };
+  const { data: profile } = await queries.profiles.getProfileRole(user.id);
 
   const isOwner = thread.author_id === user.id;
   const isMod = profile?.role === 'moderator' || profile?.role === 'admin';
@@ -289,11 +237,7 @@ export async function deleteThread(threadId: string): Promise<ThreadResult> {
   }
 
   // Delete the thread (cascades to replies, tags, likes)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
-    .from('threads')
-    .delete()
-    .eq('id', threadId);
+  const { error } = await queries.threads.deleteThread(threadId);
 
   if (error) {
     console.error('Delete thread error:', error);
@@ -308,8 +252,8 @@ export async function deleteThread(threadId: string): Promise<ThreadResult> {
 
 export async function incrementViewCount(threadId: string): Promise<void> {
   const supabase = await createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any).rpc('increment_view_count', { p_thread_id: threadId });
+  const queries = createTypedQueries(supabase);
+  await queries.rpc.incrementViewCount(threadId);
 }
 
 export async function toggleThreadLike(threadId: string): Promise<{ liked: boolean }> {
@@ -321,56 +265,28 @@ export async function toggleThreadLike(threadId: string): Promise<{ liked: boole
     return { liked: false };
   }
 
+  const queries = createTypedQueries(supabase);
+
   // Check if already liked
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: existingLike } = await (supabase as any)
-    .from('thread_likes')
-    .select('id')
-    .eq('thread_id', threadId)
-    .eq('user_id', user.id)
-    .single() as { data: { id: string } | null };
+  const { data: existingLike } = await queries.likes.getThreadLike(threadId, user.id);
 
   const isNowLiked = !existingLike;
 
   if (existingLike) {
     // Unlike
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
-      .from('thread_likes')
-      .delete()
-      .eq('id', existingLike.id);
+    await queries.likes.deleteThreadLike(existingLike.id);
   } else {
     // Like
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
-      .from('thread_likes')
-      .insert({ thread_id: threadId, user_id: user.id });
+    await queries.likes.createThreadLike(threadId, user.id);
 
     // Create notification for thread author (if not liking own thread)
     try {
       // Get thread details with author
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: threadDetails } = await (supabase as any)
-        .from('threads')
-        .select('id, slug, title, author_id')
-        .eq('id', threadId)
-        .single() as {
-          data: {
-            id: string;
-            slug: string;
-            title: string;
-            author_id: string;
-          } | null
-        };
+      const { data: threadDetails } = await queries.threads.getThreadById(threadId, 'id, slug, title, author_id');
 
       if (threadDetails && threadDetails.author_id !== user.id) {
         // Get actor username for notification message
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: actorProfile } = await (supabase as any)
-          .from('profiles')
-          .select('username')
-          .eq('id', user.id)
-          .single() as { data: { username: string } | null };
+        const { data: actorProfile } = await queries.profiles.getProfileById(user.id);
 
         if (actorProfile) {
           const notificationMessage = `${actorProfile.username} liked your thread "${threadDetails.title}"`;

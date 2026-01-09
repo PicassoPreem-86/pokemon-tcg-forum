@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 import UserMenu from '@/components/user/UserMenu';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface HomePageClientProps {
   children: React.ReactNode;
@@ -45,7 +46,18 @@ export default function HomePageClient({ children }: HomePageClientProps) {
         </form>
 
         <div className="header-actions">
-          <UserMenu />
+          <ErrorBoundary
+            fallback={
+              <div className="user-menu-auth">
+                <a href="/login" className="user-menu-login">
+                  <User size={18} />
+                  Log In
+                </a>
+              </div>
+            }
+          >
+            <UserMenu />
+          </ErrorBoundary>
         </div>
       </header>
       {children}

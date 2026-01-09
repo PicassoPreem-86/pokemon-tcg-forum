@@ -29,7 +29,7 @@ import {
   X,
   GripVertical
 } from 'lucide-react';
-import { getThreadBySlug, isUserThread, useThreadStore } from '@/lib/thread-store';
+import { getThreadBySlug, isUserThread, useThreadStore, UserThread } from '@/lib/thread-store';
 import { useReplyStore, Reply as ReplyType, ReplyImage } from '@/lib/reply-store';
 import { useAuthStore, useAuthStateAfterHydration } from '@/lib/auth-store';
 import { useUnreadStore } from '@/lib/unread-store';
@@ -58,69 +58,32 @@ const roleConfig: Record<string, { color: string; icon: React.ReactNode; label: 
   member: { color: '#6B7280', icon: null, label: '' }
 };
 
-// Generate mock post content based on thread data
-function generatePosts(thread: ReturnType<typeof getThreadBySlug>) {
-  if (!thread) return [];
+// Create the original post (OP) from thread data - NO FAKE REPLIES
+function createOriginalPost(thread: ReturnType<typeof getThreadBySlug>) {
+  if (!thread) return null;
 
   // Use full content if this is a user-created thread, otherwise fall back to excerpt
   const mainPostContent = isUserThread(thread)
     ? thread.content
     : thread.excerpt || `Welcome to the discussion about: ${thread.title}\n\nThis thread covers important topics for Pokemon TCG enthusiasts. Feel free to share your thoughts and experiences!`;
 
-  // Deterministic "random" values based on thread id to avoid hydration mismatch
-  const threadHash = thread.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-  const posts = [
-    {
-      id: 'p1',
-      content: mainPostContent,
-      author: {
-        username: thread.author.username,
-        displayName: thread.author.displayName || thread.author.username,
-        avatar: '/images/avatars/default.png',
-        role: thread.author.role || 'member',
-        postCount: thread.author.postCount || 100,
-        reputation: thread.author.reputation || 500,
-        joinDate: thread.author.joinDate || '2024-01-01',
-        location: thread.author.location,
-        signature: thread.author.signature
-      },
-      createdAt: thread.createdAt,
-      likes: isUserThread(thread) ? 0 : ((threadHash % 40) + 10)
-    }
-  ];
-
-  // Add reply posts if thread has replies
-  if (thread.postCount > 1) {
-    const replyAuthors: Array<{ username: string; displayName: string; role: 'member' | 'vip' | 'admin' | 'moderator' | 'newbie'; postCount: number; reputation: number }> = [
-      { username: 'PikachuFan', displayName: 'Pikachu Fan', role: 'member', postCount: 127, reputation: 340 },
-      { username: 'CharizardMaster', displayName: 'Charizard Master', role: 'vip', postCount: 892, reputation: 1250 },
-      { username: 'TCGCollector', displayName: 'TCG Collector', role: 'member', postCount: 256, reputation: 580 }
-    ];
-
-    for (let i = 0; i < Math.min(thread.postCount - 1, 5); i++) {
-      const author = replyAuthors[i % replyAuthors.length];
-      posts.push({
-        id: `p${i + 2}`,
-        content: `Great thread! I've been following this topic for a while. Thanks for sharing your insights on ${thread.title.toLowerCase()}.`,
-        author: {
-          username: author.username,
-          displayName: author.displayName,
-          avatar: '/images/avatars/default.png',
-          role: author.role,
-          postCount: author.postCount,
-          reputation: author.reputation,
-          joinDate: '2024-06-01',
-          location: undefined,
-          signature: undefined
-        },
-        createdAt: new Date(new Date(thread.createdAt).getTime() + (i + 1) * 3600000).toISOString(),
-        likes: ((threadHash + i * 7) % 18) + 2
-      });
-    }
-  }
-
-  return posts;
+  return {
+    id: 'p1',
+    content: mainPostContent,
+    author: {
+      username: thread.author.username,
+      displayName: thread.author.displayName || thread.author.username,
+      avatar: thread.author.avatar || '/images/avatars/default.png',
+      role: thread.author.role || 'member',
+      postCount: thread.author.postCount || 0,
+      reputation: thread.author.reputation || 0,
+      joinDate: thread.author.joinDate || thread.createdAt,
+      location: thread.author.location,
+      signature: thread.author.signature
+    },
+    createdAt: thread.createdAt,
+    likes: 0 // Real likes will come from reactions system
+  };
 }
 
 // Format date for display
@@ -146,13 +109,17 @@ function formatJoinDate(dateString: string): string {
 
 // Post component
 interface PostCardProps {
-  post: ReturnType<typeof generatePosts>[0];
+  post: ReturnType<typeof createOriginalPost>;
   isFirst: boolean;
   onQuote?: (author: string, content: string) => void;
   threadId?: string;
 }
 
 function PostCard({ post, isFirst, onQuote, threadId }: PostCardProps) {
+  if (!post) {
+    return null;
+  }
+
   const trainerRank = getTrainerRank(post.author.postCount);
   const roleInfo = roleConfig[post.author.role] || roleConfig.member;
 
@@ -1469,8 +1436,7 @@ export default function ThreadBySlugPage() {
 
       try {
         const supabase = getSupabaseClient();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from('threads')
           .select(`
             *,
@@ -1491,9 +1457,36 @@ export default function ThreadBySlugPage() {
         }
 
         // Transform Supabase data to match our Thread type
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const threadData = data as any;
-        const supabaseThread = {
+        interface SupabaseThreadData {
+          id: string;
+          slug: string;
+          title: string;
+          content: string | null;
+          category_id: string;
+          author_id: string;
+          created_at: string;
+          updated_at: string | null;
+          reply_count: number | null;
+          view_count: number | null;
+          is_pinned: boolean | null;
+          is_locked: boolean | null;
+          excerpt: string | null;
+          author: {
+            id: string;
+            username: string;
+            display_name: string | null;
+            avatar_url: string | null;
+            role: string | null;
+            created_at: string;
+            post_count: number | null;
+            reputation: number | null;
+          } | null;
+          category: {
+            slug: string;
+          } | null;
+        }
+        const threadData = data as SupabaseThreadData;
+        const supabaseThread: UserThread = {
           id: threadData.id,
           slug: threadData.slug,
           title: threadData.title,
@@ -1503,9 +1496,9 @@ export default function ThreadBySlugPage() {
           author: {
             id: threadData.author?.id || threadData.author_id,
             username: threadData.author?.username || 'Unknown',
-            displayName: threadData.author?.display_name,
-            avatar: threadData.author?.avatar_url,
-            role: threadData.author?.role || 'member',
+            displayName: threadData.author?.display_name ?? undefined,
+            avatar: threadData.author?.avatar_url ?? undefined,
+            role: (threadData.author?.role as 'member' | 'moderator' | 'admin' | 'vip' | 'newbie') || 'member',
             joinDate: threadData.author?.created_at || threadData.created_at,
             postCount: threadData.author?.post_count || 0,
             reputation: threadData.author?.reputation || 0,
@@ -1687,13 +1680,12 @@ export default function ThreadBySlugPage() {
     );
   }
 
-  const posts = generatePosts(thread);
+  const originalPost = createOriginalPost(thread);
   const categoryInfo = getCategoryInfo(thread.categoryId);
 
-  // Calculate total reply count (mock posts - 1 for OP + user replies)
+  // Calculate total reply count (only user replies, no fake data)
   // Only include userReplies.length after hydration to avoid SSR mismatch
-  const mockReplyCount = posts.length - 1;
-  const totalReplyCount = mockReplyCount + (isPageHydrated ? userReplies.length : 0);
+  const totalReplyCount = isPageHydrated ? userReplies.length : 0;
 
   return (
     <div className="content-container">
@@ -1901,11 +1893,16 @@ export default function ThreadBySlugPage() {
       {/* Poll Display (if thread has a poll) */}
       <PollDisplay threadId={thread.id} className="mb-6" />
 
-      {/* Posts - Original Post and Mock Replies */}
+      {/* Original Post Only - NO FAKE REPLIES */}
       <div className="posts-container">
-        {posts.map((post, index) => (
-          <PostCard key={post.id} post={post} isFirst={index === 0} onQuote={handleQuote} threadId={thread.id} />
-        ))}
+        {originalPost && (
+          <PostCard
+            post={originalPost}
+            isFirst={true}
+            onQuote={handleQuote}
+            threadId={thread.id}
+          />
+        )}
       </div>
 
       {/* User Replies - Nested/Threaded */}

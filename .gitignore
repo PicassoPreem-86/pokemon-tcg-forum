@@ -39,5 +39,47 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# reports and documentation
 lighthouse-report.json
+*_REPORT.md
+*_SUMMARY.md
+*_COMPLETE.md
+*_IMPROVEMENTS.md
+*_IMPLEMENTED.md
+*_AUDIT*.md
+*_GUIDE.md
+*_INSTRUCTIONS.md
+*_VERIFICATION.md
+*_UPDATE.md
+*_POLICY.md
+SESSION_*.md
+TODO_*.md
+WEEK*.md
+ALL_CATEGORIES_SEED.sql
+
+# test and utility scripts
+test-*.js
+apply-*.js
+check-*.js
+diagnose-*.js
+extract-*.js
+analyze-*.js
+css-usage-report.json
+
+# temporary and backup files
+*.backup
+*.original
+*.tmp.*
+*-optimized.css
+package-lock*.json
+!package-lock.json
+
+# supabase
 supabase/.temp/
+supabase/migrations/DEPRECATED_MIGRATIONS.md
+supabase/migrations/*_v2.sql
+supabase/migrations/fix_*.sql
+supabase/migrations/FIX_*.sql
+supabase/migrations/add_user_tracking_columns*.sql
+supabase/migrations/verify_*.sql

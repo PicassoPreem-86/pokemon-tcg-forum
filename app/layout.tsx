@@ -6,6 +6,7 @@ import { HomepageJsonLd } from '@/components/seo';
 import ToastContainer from '@/components/ui/ToastContainer';
 import { AuthProvider } from '@/lib/hooks';
 import KeyboardShortcuts, { KeyboardIndicator } from '@/components/KeyboardShortcuts';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -67,12 +68,14 @@ export default function RootLayout({
         <HomepageJsonLd />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <AuthProvider>
-          {children}
-          <ToastContainer />
-          <KeyboardShortcuts />
-          <KeyboardIndicator />
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            {children}
+            <ToastContainer />
+            <KeyboardShortcuts />
+            <KeyboardIndicator />
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

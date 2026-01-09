@@ -28,7 +28,6 @@ import { CATEGORIES } from '@/lib/categories';
 import { useAuth } from '@/lib/hooks';
 import { createThread } from '@/lib/actions/threads';
 import { sanitizeHtml } from '@/lib/sanitize';
-import { getPopularTags, searchTags } from '@/lib/mock-data/threads';
 import { CreatePollData } from '@/lib/types';
 import { usePollStore } from '@/lib/poll-store';
 import PollCreator, { PollToggleButton } from '@/components/forum/PollCreator';
@@ -79,6 +78,7 @@ function NewThreadContent() {
   const [selectedCategory, setSelectedCategory] = useState(preSelectedCategory);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [popularTags, setPopularTags] = useState<Array<{ tag: string; count: number }>>([]);
   const [isPreview, setIsPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ title?: string; content?: string; category?: string }>({});
@@ -96,6 +96,24 @@ function NewThreadContent() {
       setSelectedCategory(preSelectedCategory);
     }
   }, [preSelectedCategory]);
+
+  // Fetch popular tags on mount
+  useEffect(() => {
+    const fetchPopularTags = async () => {
+      try {
+        const response = await fetch('/api/tags/popular?limit=12');
+        const data = await response.json();
+        if (data.success && data.tags) {
+          setPopularTags(data.tags);
+        }
+      } catch (error) {
+        console.error('Error fetching popular tags:', error);
+        // Fail silently - tag suggestions are optional
+      }
+    };
+
+    fetchPopularTags();
+  }, []);
 
   const handleAddTag = () => {
     const trimmedTag = tagInput.trim().toLowerCase();
@@ -214,25 +232,22 @@ function NewThreadContent() {
         tags: tags,
       });
 
-      if (result.success && result.threadSlug && result.threadId) {
+      if (result.success && result.threadSlug) {
         // Create poll if poll data exists
-        if (pollData) {
-          createPoll(result.threadId, pollData);
+        if (pollData && result.threadId) {
+          try {
+            createPoll(result.threadId, pollData);
+          } catch (pollError) {
+            console.error('Failed to create poll:', pollError);
+            // Don't fail the thread creation if poll fails
+          }
         }
 
         setIsSuccess(true);
-        // Redirect to the new thread after a brief delay to ensure DB write is complete
-        // Use replace instead of push to prevent back-button issues
-        setTimeout(() => {
-          // Use window.location for a full page navigation to avoid client-side hydration issues
-          window.location.href = `/thread/${result.threadSlug}`;
-        }, 1500);
-      } else if (result.success && result.threadSlug) {
-        // Fallback for when threadId is not returned
-        setIsSuccess(true);
-        setTimeout(() => {
-          window.location.href = `/thread/${result.threadSlug}`;
-        }, 1500);
+
+        // Server action ensures DB write is complete before returning
+        // Navigate immediately using Next.js router for better UX
+        router.push(`/thread/${result.threadSlug}`);
       } else {
         setServerError(result.error || 'Failed to create thread. Please try again.');
         setIsSubmitting(false);
@@ -627,10 +642,10 @@ You can use Markdown formatting:
               border: '1px solid rgba(139, 92, 246, 0.1)'
             }}>
               <p style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}>
-                Popular tags (click to add):
+                {popularTags.length > 0 ? 'Popular tags (click to add):' : 'Loading popular tags...'}
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {getPopularTags(12)
+                {popularTags
                   .filter(({ tag: t }) => !tags.includes(t))
                   .slice(0, 8)
                   .map(({ tag: suggestedTag }) => (

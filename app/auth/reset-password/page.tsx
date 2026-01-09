@@ -11,9 +11,11 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { updatePassword } from '@/lib/actions/auth';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-store';
+import { PasswordStrengthIndicator, isPasswordStrong } from '@/components/auth/PasswordStrengthIndicator';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -34,8 +36,13 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    if (!isPasswordStrong(password)) {
+      setError('Please create a stronger password (meet at least 4 requirements)');
       return;
     }
 
@@ -129,6 +136,19 @@ export default function ResetPasswordPage() {
             </div>
           )}
 
+          {/* Password Requirements Info */}
+          <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-blue-300 mb-1">Create a Strong Password</h3>
+                <p className="text-xs text-blue-200/70">
+                  Your password should meet at least 4 of the following requirements for maximum security.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="auth-field">
             <label htmlFor="password">New Password</label>
             <div className="auth-input-wrapper">
@@ -151,6 +171,12 @@ export default function ResetPasswordPage() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            {/* Password Strength Indicator */}
+            {password && (
+              <div className="mt-3">
+                <PasswordStrengthIndicator password={password} showRequirements={true} />
+              </div>
+            )}
           </div>
 
           <div className="auth-field">

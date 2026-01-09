@@ -33,6 +33,9 @@ export interface Database {
           suspended_reason: string | null
           suspended_until: string | null
           suspended_by: string | null
+          last_seen: string | null
+          deleted_at: string | null
+          status: 'active' | 'suspended' | 'banned' | 'pending_verification'
           created_at: string
           updated_at: string
         }
@@ -57,6 +60,9 @@ export interface Database {
           suspended_reason?: string | null
           suspended_until?: string | null
           suspended_by?: string | null
+          last_seen?: string | null
+          deleted_at?: string | null
+          status?: 'active' | 'suspended' | 'banned' | 'pending_verification'
           created_at?: string
           updated_at?: string
         }
@@ -81,6 +87,9 @@ export interface Database {
           suspended_reason?: string | null
           suspended_until?: string | null
           suspended_by?: string | null
+          last_seen?: string | null
+          deleted_at?: string | null
+          status?: 'active' | 'suspended' | 'banned' | 'pending_verification'
           created_at?: string
           updated_at?: string
         }
